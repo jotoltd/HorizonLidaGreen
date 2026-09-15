@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyPassword, createToken } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request) {
   const form = await request.formData();
   const email = (form.get("email") || "").toString().trim().toLowerCase();

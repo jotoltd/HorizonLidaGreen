@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getTokenFromRequest } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export async function PATCH(request, { params }) {
   const user = getTokenFromRequest(request);
   if (!user || user.role !== "ADMIN") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
