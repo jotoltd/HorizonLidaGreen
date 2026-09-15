@@ -141,8 +141,8 @@ export default function AdminDashboard({ clients, shipments, stats }) {
 
       {tab === "shipments" && (
         <div className="card">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy-100 px-5 py-4">
-            <input value={search} onChange={(e) => { setSearch(e.target.value); setShipmentPage(1); }} placeholder="Search tracking, route, client…" className="input max-w-xs" />
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between border-b border-navy-100 px-5 py-4">
+            <input value={search} onChange={(e) => { setSearch(e.target.value); setShipmentPage(1); }} placeholder="Search tracking, route, client…" className="input w-full sm:max-w-xs" />
             <button onClick={() => setShowShipment(true)} className="btn-primary">+ New Shipment</button>
           </div>
 
@@ -160,7 +160,25 @@ export default function AdminDashboard({ clients, shipments, stats }) {
             </div>
           )}
 
-          <div className="overflow-x-auto">
+          {/* Mobile card layout */}
+          <div className="divide-y divide-navy-50 sm:hidden">
+            {pagedShipments.map((s) => (
+              <ShipmentCard key={s.id} shipment={s} selected={selectedIds.has(s.id)} onToggleSelect={() => toggleSelect(s.id)}
+                onEdit={() => setEditShipment(s)} onClone={() => setCloneShipment(s)}
+                onDelete={async () => { if (confirm(`Delete shipment ${s.trackingNumber}? This removes it and all its tracking events.`)) {
+                  await fetch(`/api/shipments/${s.id}`, { method: "DELETE" });
+                  setShipmentList((l) => l.filter((x) => x.id !== s.id));
+                  setSelectedIds((prev) => { const next = new Set(prev); next.delete(s.id); return next; });
+                }}}
+                onUpdate={(updated) => setShipmentList((l) => l.map((x) => (x.id === updated.id ? updated : x)))} />
+            ))}
+            {filteredShipments.length === 0 && (
+              <p className="px-5 py-10 text-center text-sm text-navy-300">No shipments found.</p>
+            )}
+          </div>
+
+          {/* Desktop table layout */}
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-navy-100 text-left text-xs uppercase tracking-wide text-navy-400">
@@ -194,7 +212,7 @@ export default function AdminDashboard({ clients, shipments, stats }) {
           </div>
 
           {totalShipmentPages > 1 && (
-            <div className="flex items-center justify-between border-t border-navy-100 px-5 py-3 text-sm">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-t border-navy-100 px-5 py-3 text-sm">
               <span className="text-navy-400">
                 {filteredShipments.length} shipment{filteredShipments.length !== 1 ? "s" : ""} · Page {shipmentPage} of {totalShipmentPages}
               </span>
@@ -209,11 +227,41 @@ export default function AdminDashboard({ clients, shipments, stats }) {
 
       {tab === "clients" && (
         <div className="card">
-          <div className="flex items-center justify-between border-b border-navy-100 px-5 py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-navy-100 px-5 py-4">
             <h3 className="font-semibold text-navy-800">Clients ({clientList.length})</h3>
             <button onClick={() => setShowClient(true)} className="btn-primary">+ New Client</button>
           </div>
-          <div className="overflow-x-auto">
+          {/* Mobile card layout */}
+          <div className="divide-y divide-navy-50 sm:hidden">
+            {pagedClients.map((c) => (
+              <div key={c.id} className="px-4 py-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-medium text-navy-800 truncate">{c.name}</div>
+                    <div className="text-sm text-navy-500 truncate">{c.email}</div>
+                    {c.company && <div className="text-xs text-navy-400">{c.company}</div>}
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className="badge bg-teal-50 text-teal-700">{c._count?.shipments ?? 0} shipments</span>
+                      <span className="text-xs text-navy-400">Joined {fmtDate(c.createdAt)}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 flex gap-3">
+                  <button onClick={() => setEditClient(c)} className="text-xs font-medium text-teal-600 hover:text-teal-700">Edit</button>
+                  <button onClick={async () => { if (confirm(`Delete client ${c.name}? This removes their login and all their shipments.`)) {
+                    await fetch(`/api/clients/${c.id}`, { method: "DELETE" });
+                    setClientList((l) => l.filter((x) => x.id !== c.id));
+                  }}} className="text-xs font-medium text-red-500 hover:text-red-700">Delete</button>
+                </div>
+              </div>
+            ))}
+            {clientList.length === 0 && (
+              <p className="px-5 py-10 text-center text-sm text-navy-300">No clients yet. Create your first client.</p>
+            )}
+          </div>
+
+          {/* Desktop table layout */}
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-navy-100 text-left text-xs uppercase tracking-wide text-navy-400">
@@ -250,7 +298,7 @@ export default function AdminDashboard({ clients, shipments, stats }) {
           </div>
 
           {totalClientPages > 1 && (
-            <div className="flex items-center justify-between border-t border-navy-100 px-5 py-3 text-sm">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-t border-navy-100 px-5 py-3 text-sm">
               <span className="text-navy-400">
                 {clientList.length} client{clientList.length !== 1 ? "s" : ""} · Page {clientPage} of {totalClientPages}
               </span>
@@ -355,6 +403,62 @@ function ShipmentRow({ shipment, selected, onToggleSelect, onEdit, onClone, onDe
   );
 }
 
+function ShipmentCard({ shipment, selected, onToggleSelect, onEdit, onClone, onDelete, onUpdate }) {
+  const [open, setOpen] = useState(false);
+  const overdue = isOverdue(shipment);
+  return (
+    <div className="px-4 py-4">
+      <div className="flex items-start gap-3">
+        <input type="checkbox" checked={selected || false} onChange={onToggleSelect} className="mt-1 h-4 w-4 rounded border-navy-300 text-teal-500 focus:ring-teal-400" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <div className="font-mono text-xs font-semibold text-navy-800 truncate">{shipment.trackingNumber}</div>
+            <span className={`badge ${statusStyles[shipment.status]} shrink-0`}>{shipment.status.replace(/_/g, " ")}</span>
+          </div>
+          <div className="mt-1 text-sm text-navy-600">{shipment.client?.name}</div>
+          <div className="text-xs text-navy-400">{shipment.origin} → {shipment.destination}</div>
+          <div className="mt-1 flex items-center gap-2">
+            <span className="text-xs text-navy-400">ETA: {fmtDate(shipment.eta)}</span>
+            {overdue && <span className="badge bg-red-50 text-red-600">Overdue</span>}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button onClick={() => setOpen(!open)} className="text-xs font-medium text-navy-500 hover:text-navy-700">{open ? "Close" : "Status"}</button>
+            <button onClick={onEdit} className="text-xs font-medium text-teal-600 hover:text-teal-700">Edit</button>
+            <button onClick={onClone} className="text-xs font-medium text-navy-500 hover:text-navy-700">Clone</button>
+            <button onClick={onDelete} className="text-xs font-medium text-red-500 hover:text-red-700">Delete</button>
+          </div>
+        </div>
+      </div>
+      {open && (
+        <div className="mt-3 rounded-lg bg-navy-50/60 p-3">
+          <div className="flex flex-col gap-3">
+            <div>
+              <label className="label text-xs">Status</label>
+              <select id={`st-m-${shipment.id}`} defaultValue={shipment.status} className="input !py-2">
+                {STATUSES.map((s) => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="label text-xs">Location (optional)</label>
+              <input id={`loc-m-${shipment.id}`} className="input !py-2" placeholder="e.g. Port of Shanghai" />
+            </div>
+            <button onClick={async () => {
+              const status = document.getElementById(`st-m-${shipment.id}`).value;
+              const location = document.getElementById(`loc-m-${shipment.id}`).value;
+              const res = await fetch(`/api/shipments/${shipment.id}`, {
+                method: "PATCH", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status, currentStatus: shipment.status, location }),
+              });
+              const data = await res.json();
+              if (res.ok) onUpdate(data.shipment);
+            }} className="btn-primary">Save Status</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ClientModal({ onClose, onCreated }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -373,7 +477,7 @@ function ClientModal({ onClose, onCreated }) {
         <div className="space-y-4">
           <div><label className="label">Full Name *</label><input name="name" required className="input" /></div>
           <div><label className="label">Email Address *</label><input name="email" type="email" required className="input" /></div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div><label className="label">Company</label><input name="company" className="input" /></div>
             <div><label className="label">Phone</label><input name="phone" className="input" /></div>
           </div>
@@ -457,15 +561,15 @@ function ShipmentFields({ clients, defaults }) {
           {clients.map((c) => <option key={c.id} value={c.id}>{c.name} — {c.email}</option>)}
         </select>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div><label className="label">Origin *</label><input name="origin" required defaultValue={d.origin || ""} className="input" placeholder="Shanghai, CN" /></div>
         <div><label className="label">Destination *</label><input name="destination" required defaultValue={d.destination || ""} className="input" placeholder="Rotterdam, NL" /></div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div><label className="label">Carrier</label><input name="carrier" defaultValue={d.carrier || ""} className="input" placeholder="Maersk" /></div>
         <div><label className="label">Service</label><input name="service" defaultValue={d.service || ""} className="input" placeholder="FCL / LCL / Air" /></div>
       </div>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div><label className="label">Pieces</label><input name="pieces" type="number" min="0" defaultValue={d.pieces ?? 0} className="input" /></div>
         <div><label className="label">Weight</label><input name="weight" defaultValue={d.weight || ""} className="input" placeholder="1200 kg" /></div>
         <div><label className="label">ETA</label><input name="eta" type="date" defaultValue={toDateInput(d.eta)} className="input" /></div>
@@ -505,7 +609,7 @@ function EditClientModal({ client, onClose, onSaved }) {
         <div className="space-y-4">
           <div><label className="label">Full Name *</label><input name="name" required defaultValue={client.name} className="input" /></div>
           <div><label className="label">Email Address *</label><input name="email" type="email" required defaultValue={client.email} className="input" /></div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div><label className="label">Company</label><input name="company" defaultValue={client.company || ""} className="input" /></div>
             <div><label className="label">Phone</label><input name="phone" defaultValue={client.phone || ""} className="input" /></div>
           </div>

@@ -43,7 +43,7 @@ export default function TrackPage() {
           <p className="mt-2 text-navy-400">Enter your tracking number to see live status. No login required.</p>
         </div>
 
-        <form onSubmit={handleSearch} className="mx-auto mt-8 flex max-w-lg gap-3">
+        <form onSubmit={handleSearch} className="mx-auto mt-8 flex max-w-lg flex-col gap-3 sm:flex-row">
           <input
             value={tracking}
             onChange={(e) => setTracking(e.target.value)}

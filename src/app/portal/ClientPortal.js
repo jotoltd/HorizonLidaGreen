@@ -40,9 +40,32 @@ export default function ClientPortal({ shipments, stats }) {
 
       <div className="card">
         <div className="border-b border-navy-100 px-5 py-4">
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by tracking number or route…" className="input max-w-md" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by tracking number or route…" className="input w-full sm:max-w-md" />
         </div>
-        <div className="overflow-x-auto">
+
+        {/* Mobile card layout */}
+        <div className="divide-y divide-navy-50 sm:hidden">
+          {filtered.map((s) => (
+            <div key={s.id} onClick={() => setSelected(s)} className="cursor-pointer px-4 py-4 hover:bg-teal-50/40">
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-mono text-xs font-semibold text-teal-700 truncate">{s.trackingNumber}</div>
+                <span className={`badge ${statusStyles[s.status]} shrink-0`}>{s.status.replace(/_/g, " ")}</span>
+              </div>
+              <div className="mt-1 text-sm text-navy-600">{s.origin} → {s.destination}</div>
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-xs text-navy-400">Carrier: {s.carrier || "—"}</span>
+                <span className="text-xs text-navy-400">ETA: {fmtDate(s.eta)}</span>
+                {isOverdue(s) && <span className="badge bg-red-50 text-red-600">Overdue</span>}
+              </div>
+            </div>
+          ))}
+          {filtered.length === 0 && (
+            <p className="px-5 py-12 text-center text-sm text-navy-300">No shipments found.</p>
+          )}
+        </div>
+
+        {/* Desktop table layout */}
+        <div className="hidden overflow-x-auto sm:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-navy-100 text-left text-xs uppercase tracking-wide text-navy-400">
@@ -94,7 +117,7 @@ function ShipmentDetail({ shipment, onBack }) {
     <div>
       <button onClick={onBack} className="mb-4 text-sm font-medium text-teal-600 hover:text-teal-700">← Back to shipments</button>
 
-      <div className="card mb-6 p-6">
+      <div className="card mb-6 p-4 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-xs font-medium text-navy-400">Tracking Number</div>
@@ -122,25 +145,25 @@ function ShipmentDetail({ shipment, onBack }) {
       </div>
 
       {!cancelled ? (
-        <div className="card mb-6 p-6">
+        <div className="card mb-6 p-4 sm:p-6">
           <h3 className="mb-6 font-semibold text-navy-800">Shipment Progress</h3>
-          <div className="flex items-center">
+          <div className="flex items-center overflow-x-auto pb-2 sm:pb-0">
             {STEP_ORDER.map((step, i) => {
               const done = i <= currentStep;
               const active = i === currentStep;
               return (
-                <div key={step} className="flex flex-1 items-center last:flex-none">
+                <div key={step} className="flex flex-1 items-center last:flex-none min-w-[60px]">
                   <div className="flex flex-col items-center">
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition ${
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm transition sm:h-10 sm:w-10 ${
                       done ? "border-teal-500 bg-teal-500 text-white" : "border-navy-200 bg-white text-navy-300"}`}>
                       {done ? "✓" : i + 1}
                     </div>
-                    <div className={`mt-2 text-xs font-medium ${active ? "text-teal-600" : done ? "text-navy-700" : "text-navy-300"}`}>
+                    <div className={`mt-2 text-[10px] font-medium sm:text-xs ${active ? "text-teal-600" : done ? "text-navy-700" : "text-navy-300"} text-center`}>
                       {STEP_LABELS[step]}
                     </div>
                   </div>
                   {i < STEP_ORDER.length - 1 && (
-                    <div className={`mx-2 h-0.5 flex-1 ${i < currentStep ? "bg-teal-500" : "bg-navy-100"}`} />
+                    <div className={`mx-1 h-0.5 flex-1 sm:mx-2 ${i < currentStep ? "bg-teal-500" : "bg-navy-100"}`} />
                   )}
                 </div>
               );
@@ -148,7 +171,7 @@ function ShipmentDetail({ shipment, onBack }) {
           </div>
         </div>
       ) : (
-        <div className="card mb-6 p-6">
+        <div className="card mb-6 p-4 sm:p-6">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-100 text-orange-600">!</div>
             <div>
@@ -159,7 +182,7 @@ function ShipmentDetail({ shipment, onBack }) {
         </div>
       )}
 
-      <div className="card p-6">
+      <div className="card p-4 sm:p-6">
         <h3 className="mb-4 font-semibold text-navy-800">Tracking History</h3>
         <div className="space-y-0">
           {(shipment.events || []).map((ev, i) => (
