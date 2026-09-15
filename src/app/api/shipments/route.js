@@ -11,6 +11,19 @@ function genTracking() {
   return out;
 }
 
+async function genUniqueTracking() {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const candidate = genTracking();
+    const { data: existing } = await supabase
+      .from("Shipment")
+      .select("id")
+      .eq("trackingNumber", candidate)
+      .maybeSingle();
+    if (!existing) return candidate;
+  }
+  throw new Error("Unable to generate a unique tracking number after 10 attempts.");
+}
+
 export async function GET(request) {
   const user = getTokenFromRequest(request);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -93,7 +106,7 @@ export async function POST(request) {
   const { data: client } = await supabase.from("User").select("id").eq("id", clientId).single();
   if (!client) return NextResponse.json({ error: "Client not found." }, { status: 404 });
 
-  const trackingNumber = genTracking();
+  const trackingNumber = await genUniqueTracking();
   const now = new Date().toISOString();
 
   const { data: shipment, error } = await supabase

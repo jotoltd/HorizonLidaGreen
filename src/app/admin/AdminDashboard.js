@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { isOverdue } from "@/lib/ShipmentResult";
 
 const STATUSES = ["BOOKED", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED", "ON_HOLD", "CANCELLED"];
+const PAGE_SIZE = 10;
 
 const statusStyles = {
   BOOKED: "bg-navy-100 text-navy-700",
@@ -23,15 +25,65 @@ export default function AdminDashboard({ clients, shipments, stats }) {
   const [editShipment, setEditShipment] = useState(null);
   const [editClient, setEditClient] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [cloneShipment, setCloneShipment] = useState(null);
   const [clientList, setClientList] = useState(clients);
   const [shipmentList, setShipmentList] = useState(shipments);
   const [search, setSearch] = useState("");
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkStatus, setBulkStatus] = useState("");
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [shipmentPage, setShipmentPage] = useState(1);
+  const [clientPage, setClientPage] = useState(1);
 
   const filteredShipments = shipmentList.filter((s) => {
     const q = search.toLowerCase();
     return !q || s.trackingNumber.toLowerCase().includes(q) || s.origin.toLowerCase().includes(q) ||
       s.destination.toLowerCase().includes(q) || s.client?.name.toLowerCase().includes(q);
   });
+
+  const pagedShipments = filteredShipments.slice((shipmentPage - 1) * PAGE_SIZE, shipmentPage * PAGE_SIZE);
+  const totalShipmentPages = Math.max(1, Math.ceil(filteredShipments.length / PAGE_SIZE));
+
+  const pagedClients = clientList.slice((clientPage - 1) * PAGE_SIZE, clientPage * PAGE_SIZE);
+  const totalClientPages = Math.max(1, Math.ceil(clientList.length / PAGE_SIZE));
+
+  function toggleSelect(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAllOnPage() {
+    const pageIds = pagedShipments.map((s) => s.id);
+    const allSelected = pageIds.every((id) => selectedIds.has(id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return next;
+    });
+  }
+
+  async function applyBulkStatus() {
+    if (!bulkStatus || selectedIds.size === 0) return;
+    setBulkLoading(true);
+    const ids = Array.from(selectedIds);
+    await Promise.all(ids.map((id) => {
+      const shipment = shipmentList.find((s) => s.id === id);
+      return fetch(`/api/shipments/${id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: bulkStatus, currentStatus: shipment?.status }),
+      }).then((r) => r.json()).then((data) => {
+        if (data.shipment) setShipmentList((l) => l.map((x) => (x.id === data.shipment.id ? data.shipment : x)));
+      });
+    }));
+    setBulkLoading(false);
+    setSelectedIds(new Set());
+    setBulkStatus("");
+  }
 
   return (
     <div>
@@ -90,13 +142,31 @@ export default function AdminDashboard({ clients, shipments, stats }) {
       {tab === "shipments" && (
         <div className="card">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy-100 px-5 py-4">
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search tracking, route, client…" className="input max-w-xs" />
+            <input value={search} onChange={(e) => { setSearch(e.target.value); setShipmentPage(1); }} placeholder="Search tracking, route, client…" className="input max-w-xs" />
             <button onClick={() => setShowShipment(true)} className="btn-primary">+ New Shipment</button>
           </div>
+
+          {selectedIds.size > 0 && (
+            <div className="flex flex-wrap items-center gap-3 border-b border-teal-100 bg-teal-50 px-5 py-3">
+              <span className="text-sm font-medium text-teal-800">{selectedIds.size} selected</span>
+              <select value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)} className="input !py-2 max-w-[180px]">
+                <option value="">Set status…</option>
+                {STATUSES.map((s) => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}
+              </select>
+              <button onClick={applyBulkStatus} disabled={!bulkStatus || bulkLoading} className="btn-primary !py-2">
+                {bulkLoading ? "Updating…" : "Apply to selected"}
+              </button>
+              <button onClick={() => setSelectedIds(new Set())} className="text-sm text-navy-500 hover:text-navy-700">Clear</button>
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-navy-100 text-left text-xs uppercase tracking-wide text-navy-400">
+                  <th className="px-3 py-3 w-10">
+                    <input type="checkbox" checked={pagedShipments.length > 0 && pagedShipments.every((s) => selectedIds.has(s.id))} onChange={toggleSelectAllOnPage} className="h-4 w-4 rounded border-navy-300 text-teal-500 focus:ring-teal-400" />
+                  </th>
                   <th className="px-5 py-3 font-semibold">Tracking #</th>
                   <th className="px-5 py-3 font-semibold">Client</th>
                   <th className="px-5 py-3 font-semibold">Route</th>
@@ -106,16 +176,34 @@ export default function AdminDashboard({ clients, shipments, stats }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-navy-50">
-                {filteredShipments.map((s) => (
-                  <ShipmentRow key={s.id} shipment={s} onEdit={() => setEditShipment(s)} onUpdate={(updated) =>
-                    setShipmentList((l) => l.map((x) => (x.id === updated.id ? updated : x)))} />
+                {pagedShipments.map((s) => (
+                  <ShipmentRow key={s.id} shipment={s} selected={selectedIds.has(s.id)} onToggleSelect={() => toggleSelect(s.id)}
+                    onEdit={() => setEditShipment(s)} onClone={() => setCloneShipment(s)}
+                    onDelete={async () => { if (confirm(`Delete shipment ${s.trackingNumber}? This removes it and all its tracking events.`)) {
+                      await fetch(`/api/shipments/${s.id}`, { method: "DELETE" });
+                      setShipmentList((l) => l.filter((x) => x.id !== s.id));
+                      setSelectedIds((prev) => { const next = new Set(prev); next.delete(s.id); return next; });
+                    }}}
+                    onUpdate={(updated) => setShipmentList((l) => l.map((x) => (x.id === updated.id ? updated : x)))} />
                 ))}
                 {filteredShipments.length === 0 && (
-                  <tr><td colSpan={6} className="px-5 py-10 text-center text-navy-300">No shipments found.</td></tr>
+                  <tr><td colSpan={7} className="px-5 py-10 text-center text-navy-300">No shipments found.</td></tr>
                 )}
               </tbody>
             </table>
           </div>
+
+          {totalShipmentPages > 1 && (
+            <div className="flex items-center justify-between border-t border-navy-100 px-5 py-3 text-sm">
+              <span className="text-navy-400">
+                {filteredShipments.length} shipment{filteredShipments.length !== 1 ? "s" : ""} · Page {shipmentPage} of {totalShipmentPages}
+              </span>
+              <div className="flex gap-2">
+                <button onClick={() => setShipmentPage((p) => Math.max(1, p - 1))} disabled={shipmentPage === 1} className="btn-secondary !py-2 !px-3 disabled:opacity-40">← Prev</button>
+                <button onClick={() => setShipmentPage((p) => Math.min(totalShipmentPages, p + 1))} disabled={shipmentPage === totalShipmentPages} className="btn-secondary !py-2 !px-3 disabled:opacity-40">Next →</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -138,7 +226,7 @@ export default function AdminDashboard({ clients, shipments, stats }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-navy-50">
-                {clientList.map((c) => (
+                {pagedClients.map((c) => (
                   <tr key={c.id} className="hover:bg-navy-50/50">
                     <td className="px-5 py-3 font-medium text-navy-800">{c.name}</td>
                     <td className="px-5 py-3 text-navy-500">{c.email}</td>
@@ -160,6 +248,18 @@ export default function AdminDashboard({ clients, shipments, stats }) {
               </tbody>
             </table>
           </div>
+
+          {totalClientPages > 1 && (
+            <div className="flex items-center justify-between border-t border-navy-100 px-5 py-3 text-sm">
+              <span className="text-navy-400">
+                {clientList.length} client{clientList.length !== 1 ? "s" : ""} · Page {clientPage} of {totalClientPages}
+              </span>
+              <div className="flex gap-2">
+                <button onClick={() => setClientPage((p) => Math.max(1, p - 1))} disabled={clientPage === 1} className="btn-secondary !py-2 !px-3 disabled:opacity-40">← Prev</button>
+                <button onClick={() => setClientPage((p) => Math.min(totalClientPages, p + 1))} disabled={clientPage === totalClientPages} className="btn-secondary !py-2 !px-3 disabled:opacity-40">Next →</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -171,6 +271,10 @@ export default function AdminDashboard({ clients, shipments, stats }) {
       {showShipment && <ShipmentModal clients={clientList} onClose={() => setShowShipment(false)} onCreated={(s) => {
         setShipmentList((l) => [s, ...l]);
         setShowShipment(false);
+      }} />}
+      {cloneShipment && <ShipmentModal clients={clientList} defaults={cloneShipment} title="Clone Shipment" onClose={() => setCloneShipment(null)} onCreated={(s) => {
+        setShipmentList((l) => [s, ...l]);
+        setCloneShipment(null);
       }} />}
       {editShipment && <EditShipmentModal shipment={editShipment} clients={clientList} onClose={() => setEditShipment(null)} onSaved={(updated) => {
         setShipmentList((l) => l.map((x) => (x.id === updated.id ? updated : x)));
@@ -195,24 +299,33 @@ function StatCard({ label, value, accent }) {
   );
 }
 
-function ShipmentRow({ shipment, onEdit, onUpdate }) {
+function ShipmentRow({ shipment, selected, onToggleSelect, onEdit, onClone, onDelete, onUpdate }) {
   const [open, setOpen] = useState(false);
+  const overdue = isOverdue(shipment);
   return (
     <>
       <tr className="hover:bg-navy-50/50">
+        <td className="px-3 py-3">
+          <input type="checkbox" checked={selected || false} onChange={onToggleSelect} className="h-4 w-4 rounded border-navy-300 text-teal-500 focus:ring-teal-400" />
+        </td>
         <td className="px-5 py-3 font-mono text-xs font-semibold text-navy-800">{shipment.trackingNumber}</td>
         <td className="px-5 py-3 text-navy-600">{shipment.client?.name}</td>
         <td className="px-5 py-3 text-navy-500">{shipment.origin} → {shipment.destination}</td>
-        <td className="px-5 py-3 text-navy-400">{fmtDate(shipment.eta)}</td>
+        <td className="px-5 py-3">
+          <div className="text-navy-400">{fmtDate(shipment.eta)}</div>
+          {overdue && <span className="badge mt-0.5 bg-red-50 text-red-600">Overdue</span>}
+        </td>
         <td className="px-5 py-3"><span className={`badge ${statusStyles[shipment.status]}`}>{shipment.status.replace(/_/g, " ")}</span></td>
         <td className="px-5 py-3 text-right whitespace-nowrap">
           <button onClick={() => setOpen(!open)} className="text-xs font-medium text-navy-500 hover:text-navy-700 mr-3">{open ? "Close" : "Status"}</button>
-          <button onClick={onEdit} className="text-xs font-medium text-teal-600 hover:text-teal-700">Edit</button>
+          <button onClick={onEdit} className="text-xs font-medium text-teal-600 hover:text-teal-700 mr-3">Edit</button>
+          <button onClick={onClone} className="text-xs font-medium text-navy-500 hover:text-navy-700 mr-3">Clone</button>
+          <button onClick={onDelete} className="text-xs font-medium text-red-500 hover:text-red-700">Delete</button>
         </td>
       </tr>
       {open && (
         <tr className="bg-navy-50/40">
-          <td colSpan={6} className="px-5 py-4">
+          <td colSpan={7} className="px-5 py-4">
             <div className="flex flex-wrap items-end gap-3">
               <div>
                 <label className="label text-xs">Status</label>
@@ -278,11 +391,11 @@ function ClientModal({ onClose, onCreated }) {
   );
 }
 
-function ShipmentModal({ clients, onClose, onCreated }) {
+function ShipmentModal({ clients, onClose, onCreated, defaults, title }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   return (
-    <Modal title="Create New Shipment" onClose={onClose}>
+    <Modal title={title || "Create New Shipment"} onClose={onClose}>
       <form onSubmit={async (e) => {
         e.preventDefault(); setLoading(true); setError("");
         const fd = new FormData(e.target);
@@ -293,7 +406,7 @@ function ShipmentModal({ clients, onClose, onCreated }) {
         if (!res.ok) { setError(data.error || "Failed to create shipment"); return; }
         onCreated(data.shipment);
       }}>
-        <ShipmentFields clients={clients} />
+        <ShipmentFields clients={clients} defaults={defaults} />
         {error && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
         <div className="mt-6 flex justify-end gap-3">
           <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
