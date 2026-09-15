@@ -52,7 +52,6 @@ export default function Home() {
 
             <div className="mt-8 border-t border-navy-100 pt-6">
               <h3 className="text-sm font-semibold text-navy-800">Track a shipment</h3>
-              <p className="mt-1 text-sm text-navy-400">No login required — results appear below.</p>
               <div className="mt-4">
                 <TrackWidget />
               </div>
