@@ -44,7 +44,7 @@ export default function LoginForm() {
         </button>
       </form>
       <p className="mt-6 text-center text-xs text-navy-300">
-        Need access? Contact your Horizon Lida Green representative.
+        Contact us if you have any issues
       </p>
     </>
   );
