@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import { verifyPassword, createToken } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -13,12 +13,17 @@ export async function POST(request) {
     return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || !verifyPassword(password, user.passwordHash)) {
+  const { data: user, error } = await supabase
+    .from("User")
+    .select("id, email, passwordHash, name, role")
+    .eq("email", email)
+    .single();
+
+  if (error || !user || !verifyPassword(password, user.passwordHash)) {
     return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
   }
 
-  const token = createToken(user);
+  const token = createToken({ id: user.id, email: user.email, role: user.role, name: user.name });
   const res = NextResponse.json({ ok: true, role: user.role });
   res.cookies.set("token", token, {
     httpOnly: true,

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import { getTokenFromRequest } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ export async function PATCH(request, { params }) {
   const allowed = ["origin", "destination", "carrier", "service", "pieces", "weight", "eta", "notes", "clientId"];
   for (const k of allowed) {
     if (body[k] !== undefined) {
-      if (k === "eta") data.eta = body.eta ? new Date(body.eta) : null;
+      if (k === "eta") data.eta = body.eta ? new Date(body.eta).toISOString() : null;
       else if (k === "pieces" || k === "clientId") data[k] = Number(body[k]);
       else data[k] = body[k];
     }
@@ -23,23 +23,33 @@ export async function PATCH(request, { params }) {
 
   const statusChanged = body.status && body.status !== body.currentStatus;
   if (body.status) data.status = body.status;
+  data.updatedAt = new Date().toISOString();
 
-  const shipment = await prisma.shipment.update({
-    where: { id },
-    data,
-    include: { client: { select: { name: true, company: true } } },
-  });
+  const { data: shipment, error } = await supabase
+    .from("Shipment")
+    .update(data)
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   if (statusChanged) {
-    await prisma.shipmentEvent.create({
-      data: {
-        shipmentId: id,
-        status: body.status,
-        location: body.location || null,
-        description: body.description || `Status updated to ${body.status.replace(/_/g, " ")}`,
-      },
+    await supabase.from("ShipmentEvent").insert({
+      shipmentId: id,
+      status: body.status,
+      location: body.location || null,
+      description: body.description || `Status updated to ${body.status.replace(/_/g, " ")}`,
     });
   }
+
+  // Attach client name
+  const { data: client } = await supabase
+    .from("User")
+    .select("name, company")
+    .eq("id", shipment.clientId)
+    .single();
+  shipment.client = client || null;
 
   return NextResponse.json({ shipment });
 }
@@ -49,6 +59,9 @@ export async function DELETE(request, { params }) {
   if (!user || user.role !== "ADMIN") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const id = Number(params.id);
-  await prisma.shipment.delete({ where: { id } });
+  await supabase.from("ShipmentEvent").delete().eq("shipmentId", id);
+  const { error } = await supabase.from("Shipment").delete().eq("id", id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
   return NextResponse.json({ ok: true });
 }

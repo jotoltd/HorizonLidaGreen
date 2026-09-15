@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import { getTokenFromRequest, hashPassword } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -15,13 +15,23 @@ export async function GET(request) {
   const user = getTokenFromRequest(request);
   if (!user || user.role !== "ADMIN") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const clients = await prisma.user.findMany({
-    where: { role: "CLIENT" },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, name: true, email: true, company: true, phone: true, createdAt: true,
-      _count: { select: { shipments: true } } },
-  });
-  return NextResponse.json({ clients });
+  const { data: clients } = await supabase
+    .from("User")
+    .select("id, name, email, company, phone, createdAt")
+    .eq("role", "CLIENT")
+    .order("createdAt", { ascending: false });
+
+  // Count shipments per client
+  const { data: counts } = await supabase
+    .from("Shipment")
+    .select("clientId");
+
+  const countMap = {};
+  (counts || []).forEach((s) => { countMap[s.clientId] = (countMap[s.clientId] || 0) + 1; });
+
+  const clientsWithCounts = (clients || []).map((c) => ({ ...c, _count: { shipments: countMap[c.id] || 0 } }));
+
+  return NextResponse.json({ clients: clientsWithCounts });
 }
 
 export async function POST(request) {
@@ -39,13 +49,16 @@ export async function POST(request) {
     return NextResponse.json({ error: "Name and email are required." }, { status: 400 });
   }
 
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const { data: existing } = await supabase.from("User").select("id").eq("email", email).single();
   if (existing) return NextResponse.json({ error: "A client with this email already exists." }, { status: 409 });
 
-  const client = await prisma.user.create({
-    data: { name, email, company, phone, role: "CLIENT", passwordHash: hashPassword(password) },
-    select: { id: true, name: true, email: true, company: true, phone: true },
-  });
+  const { data: client, error } = await supabase
+    .from("User")
+    .insert({ name, email, company, phone, role: "CLIENT", passwordHash: hashPassword(password) })
+    .select("id, name, email, company, phone")
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ client, password });
 }
