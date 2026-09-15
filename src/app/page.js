@@ -3,7 +3,7 @@ import { verifyToken } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Logo } from "@/lib/logo";
 import LoginForm from "./login/LoginForm";
-import TrackWidget from "./TrackWidget";
+import TrackSection from "./TrackSection";
 
 export default function Home() {
   const token = cookies().get("token")?.value;
@@ -50,12 +50,7 @@ export default function Home() {
 
             <LoginForm />
 
-            <div className="mt-8 border-t border-navy-100 pt-6">
-              <h3 className="text-sm font-semibold text-navy-800">Track a shipment</h3>
-              <div className="mt-4">
-                <TrackWidget />
-              </div>
-            </div>
+            <TrackSection />
           </div>
         </div>
       </div>
