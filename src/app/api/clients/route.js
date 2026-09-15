@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getTokenFromRequest, hashPassword } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 function genPassword(len = 8) {
   const chars = "abcdefghijkmnpqrstuvwxyz23456789";
   let out = "";

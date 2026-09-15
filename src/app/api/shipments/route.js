@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getTokenFromRequest } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 function genTracking() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let out = "HLG";
