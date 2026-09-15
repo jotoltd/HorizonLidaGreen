@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { Logo } from "@/lib/shell";
 import LoginForm from "./LoginForm";
 
@@ -48,6 +49,12 @@ export default async function LoginPage() {
             <p className="mt-1 text-sm text-navy-400">Sign in to your shipping portal.</p>
 
             <LoginForm />
+            <div className="mt-6 border-t border-navy-100 pt-5 text-center">
+              <p className="text-sm text-navy-400">Just need to track a shipment?</p>
+              <Link href="/track" className="mt-1 inline-block text-sm font-semibold text-teal-600 hover:text-teal-700">
+                Track by tracking number →
+              </Link>
+            </div>
           </div>
         </div>
       </div>

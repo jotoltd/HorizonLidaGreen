@@ -7,5 +7,5 @@ export default function Home() {
   const user = token ? verifyToken(token) : null;
   if (user?.role === "ADMIN") redirect("/admin");
   if (user?.role === "CLIENT") redirect("/portal");
-  redirect("/login");
+  redirect("/track");
 }
