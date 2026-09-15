@@ -13,6 +13,12 @@ export const STEP_LABELS = { BOOKED: "Booked", IN_TRANSIT: "In Transit", OUT_FOR
 export const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—");
 export const fmtDateTime = (d) => (d ? new Date(d).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
 
+export function isOverdue(shipment) {
+  if (!shipment.eta) return false;
+  if (shipment.status === "DELIVERED" || shipment.status === "CANCELLED") return false;
+  return new Date(shipment.eta) < new Date();
+}
+
 export function ShipmentResult({ result }) {
   const { shipment, events } = result;
   const currentStep = STEP_ORDER.indexOf(shipment.status);
@@ -30,6 +36,7 @@ export function ShipmentResult({ result }) {
           <span className={`badge px-3 py-1 text-sm ${statusStyles[shipment.status]}`}>
             {shipment.status.replace(/_/g, " ")}
           </span>
+          {isOverdue(shipment) && <span className="badge ml-2 bg-red-50 text-red-600 px-3 py-1 text-sm">Overdue</span>}
         </div>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Detail label="Origin" value={shipment.origin} />

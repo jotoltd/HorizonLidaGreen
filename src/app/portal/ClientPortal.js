@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { isOverdue } from "@/lib/ShipmentResult";
 
 const statusStyles = {
   BOOKED: "bg-navy-100 text-navy-700",
@@ -59,7 +60,10 @@ export default function ClientPortal({ shipments, stats }) {
                   <td className="px-5 py-3.5 text-navy-600">{s.origin} → {s.destination}</td>
                   <td className="px-5 py-3.5 text-navy-500">{s.carrier || "—"}</td>
                   <td className="px-5 py-3.5 text-navy-400">{fmtDate(s.eta)}</td>
-                  <td className="px-5 py-3.5"><span className={`badge ${statusStyles[s.status]}`}>{s.status.replace(/_/g, " ")}</span></td>
+                  <td className="px-5 py-3.5">
+                    <span className={`badge ${statusStyles[s.status]}`}>{s.status.replace(/_/g, " ")}</span>
+                    {isOverdue(s) && <span className="badge ml-1 bg-red-50 text-red-600">Overdue</span>}
+                  </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
@@ -97,6 +101,7 @@ function ShipmentDetail({ shipment, onBack }) {
             <div className="font-mono text-2xl font-bold text-navy-800">{shipment.trackingNumber}</div>
           </div>
           <span className={`badge px-3 py-1 text-sm ${statusStyles[shipment.status]}`}>{shipment.status.replace(/_/g, " ")}</span>
+          {isOverdue(shipment) && <span className="badge ml-2 bg-red-50 text-red-600 px-3 py-1 text-sm">Overdue</span>}
         </div>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Detail label="Origin" value={shipment.origin} />

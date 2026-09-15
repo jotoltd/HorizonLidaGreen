@@ -11,11 +11,14 @@ export async function GET(request) {
     return NextResponse.json({ error: "Please enter a tracking number." }, { status: 400 });
   }
 
-  const { data: shipment, error } = await supabase
+  const { data: shipments, error } = await supabase
     .from("Shipment")
     .select("*")
     .eq("trackingNumber", tracking)
-    .single();
+    .order("createdAt", { ascending: "desc" })
+    .limit(1);
+
+  const shipment = shipments && shipments.length > 0 ? shipments[0] : null;
 
   if (error || !shipment) {
     return NextResponse.json({ error: "No shipment found with that tracking number." }, { status: 404 });
