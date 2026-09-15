@@ -121,12 +121,12 @@ function ShipmentDetail({ shipment, onBack }) {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-xs font-medium text-navy-400">Tracking Number</div>
-            <div className="font-mono text-2xl font-bold text-navy-800">{shipment.trackingNumber}</div>
+            <div className="font-mono text-xl font-bold text-navy-800 sm:text-2xl">{shipment.trackingNumber}</div>
           </div>
           <span className={`badge px-3 py-1 text-sm ${statusStyles[shipment.status]}`}>{shipment.status.replace(/_/g, " ")}</span>
           {isOverdue(shipment) && <span className="badge ml-2 bg-red-50 text-red-600 px-3 py-1 text-sm">Overdue</span>}
         </div>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Detail label="Origin" value={shipment.origin} />
           <Detail label="Destination" value={shipment.destination} />
           <Detail label="Carrier" value={shipment.carrier || "—"} />
