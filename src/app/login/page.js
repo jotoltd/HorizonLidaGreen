@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Logo } from "@/lib/shell";
+import { Logo } from "@/lib/logo";
 import LoginForm from "./LoginForm";
 
 export default async function LoginPage() {
