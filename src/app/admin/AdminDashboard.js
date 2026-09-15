@@ -22,6 +22,7 @@ export default function AdminDashboard({ clients, shipments, stats }) {
   const [showShipment, setShowShipment] = useState(false);
   const [editShipment, setEditShipment] = useState(null);
   const [editClient, setEditClient] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [clientList, setClientList] = useState(clients);
   const [shipmentList, setShipmentList] = useState(shipments);
   const [search, setSearch] = useState("");
@@ -80,6 +81,7 @@ export default function AdminDashboard({ clients, shipments, stats }) {
             <div className="space-y-3 p-5">
               <button onClick={() => setShowClient(true)} className="btn-primary w-full justify-start">+ Create New Client</button>
               <button onClick={() => setShowShipment(true)} className="btn-secondary w-full justify-start">+ Create New Shipment</button>
+              <button onClick={() => setShowPassword(true)} className="btn-secondary w-full justify-start">Change My Password</button>
             </div>
           </div>
         </div>
@@ -178,6 +180,7 @@ export default function AdminDashboard({ clients, shipments, stats }) {
         setClientList((l) => l.map((x) => (x.id === updated.id ? { ...x, ...updated } : x)));
         setEditClient(null);
       }} />}
+      {showPassword && <ChangePasswordModal onClose={() => setShowPassword(false)} />}
     </div>
   );
 }
@@ -412,6 +415,52 @@ function EditClientModal({ client, onClose, onSaved }) {
           <button type="submit" disabled={loading} className="btn-primary">{loading ? "Saving…" : "Save Changes"}</button>
         </div>
       </form>
+    </Modal>
+  );
+}
+
+function ChangePasswordModal({ onClose }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+  return (
+    <Modal title="Change My Password" onClose={onClose}>
+      {done ? (
+        <div className="text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600">✓</div>
+          <p className="mt-3 font-semibold text-navy-800">Password updated</p>
+          <p className="mt-1 text-sm text-navy-400">Use your new password next time you sign in.</p>
+          <button onClick={onClose} className="btn-primary mt-6">Done</button>
+        </div>
+      ) : (
+        <form onSubmit={async (e) => {
+          e.preventDefault(); setLoading(true); setError("");
+          const fd = new FormData(e.target);
+          const res = await fetch("/api/auth/password", {
+            method: "PATCH", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              currentPassword: fd.get("currentPassword"),
+              newPassword: fd.get("newPassword"),
+            }),
+          });
+          const data = await res.json();
+          setLoading(false);
+          if (!res.ok) { setError(data.error || "Failed to update password."); return; }
+          setDone(true);
+        }}>
+          <div className="space-y-4">
+            <div><label className="label">Current Password</label><input name="currentPassword" type="password" required autoComplete="current-password" className="input" placeholder="••••••" /></div>
+            <div><label className="label">New Password</label><input name="newPassword" type="password" required minLength={6} autoComplete="new-password" className="input" placeholder="At least 6 characters" /></div>
+            <div><label className="label">Confirm New Password</label><input name="confirm" type="password" required minLength={6} autoComplete="new-password" className="input" placeholder="Re-enter new password"
+              onChange={(e) => { if (e.target.value && e.target.value !== e.target.form.newPassword.value) e.target.setCustomValidity("Passwords do not match"); else e.target.setCustomValidity(""); }} /></div>
+            {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+          </div>
+          <div className="mt-6 flex justify-end gap-3">
+            <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
+            <button type="submit" disabled={loading} className="btn-primary">{loading ? "Saving…" : "Update Password"}</button>
+          </div>
+        </form>
+      )}
     </Modal>
   );
 }
