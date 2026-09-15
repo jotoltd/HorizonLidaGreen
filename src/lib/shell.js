@@ -3,8 +3,9 @@ import { verifyToken } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import SignOutButton from "@/lib/SignOutButton";
+import { Logo } from "@/lib/logo";
 
-export { Logo } from "@/lib/logo";
+export { Logo };
 
 export async function getCurrentUser() {
   const token = cookies().get("token")?.value;
