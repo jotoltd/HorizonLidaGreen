@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Logo } from "@/lib/shell";
+import { Logo } from "@/lib/logo";
 import Link from "next/link";
 
 const statusStyles = {
