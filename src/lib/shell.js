@@ -1,0 +1,77 @@
+import { cookies } from "next/headers";
+import { verifyToken } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import SignOutButton from "@/lib/SignOutButton";
+
+export async function getCurrentUser() {
+  const token = cookies().get("token")?.value;
+  const user = token ? verifyToken(token) : null;
+  return user;
+}
+
+export async function requireAdmin() {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "ADMIN") redirect("/login");
+  return user;
+}
+
+export async function requireClient() {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "CLIENT") redirect("/login");
+  return user;
+}
+
+export function Logo() {
+  return (
+    <div className="flex items-center gap-2.5">
+      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-teal-400 to-teal-600 shadow-sm">
+        <svg viewBox="0 0 24 24" className="h-5 w-5 text-white" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 16l5-5 4 4 8-8" />
+          <path d="M16 7h4v4" />
+        </svg>
+      </div>
+      <div className="leading-tight">
+        <div className="text-sm font-bold text-navy-800 tracking-tight">HORIZON</div>
+        <div className="text-[10px] font-semibold text-teal-600 tracking-widest -mt-0.5">LIDA GREEN</div>
+      </div>
+    </div>
+  );
+}
+
+export function Shell({ user, title, children, actions }) {
+  return (
+    <div className="min-h-screen bg-navy-50">
+      <header className="sticky top-0 z-20 border-b border-navy-100 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+          <div className="flex items-center gap-8">
+            <Link href={user.role === "ADMIN" ? "/admin" : "/portal"}>
+              <Logo />
+            </Link>
+            <h1 className="hidden text-base font-semibold text-navy-700 sm:block">{title}</h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="hidden text-right sm:block">
+              <div className="text-sm font-semibold text-navy-800">{user.name}</div>
+              <div className="text-xs text-navy-400">{user.email}</div>
+            </div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-navy-800 text-sm font-semibold text-white">
+              {user.name?.charAt(0).toUpperCase()}
+            </div>
+            <SignOutButton />
+          </div>
+        </div>
+      </header>
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-navy-800">{title}</h2>
+          {actions}
+        </div>
+        {children}
+      </main>
+      <footer className="mx-auto max-w-7xl px-4 pb-8 text-center text-xs text-navy-300 sm:px-6">
+        © {new Date().getFullYear()} Horizon Lida Green — Freight Forwarding
+      </footer>
+    </div>
+  );
+}
