@@ -1,4 +1,6 @@
-export function Logo() {
+export function Logo({ variant = "light" }) {
+  const titleColor = variant === "dark" ? "text-white" : "text-navy-800";
+  const subColor = variant === "dark" ? "text-teal-300" : "text-teal-600";
   return (
     <div className="flex items-center gap-2.5">
       <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-teal-400 to-teal-600 shadow-sm">
@@ -8,8 +10,8 @@ export function Logo() {
         </svg>
       </div>
       <div className="leading-tight">
-        <div className="text-sm font-bold text-navy-800 tracking-tight">HORIZON</div>
-        <div className="text-[10px] font-semibold text-teal-600 tracking-widest -mt-0.5">LIDA GREEN</div>
+        <div className={`text-sm font-bold tracking-tight ${titleColor}`}>HORIZON</div>
+        <div className={`text-[10px] font-semibold tracking-widest -mt-0.5 ${subColor}`}>LIDA GREEN</div>
       </div>
     </div>
   );

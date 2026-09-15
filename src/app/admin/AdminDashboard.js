@@ -14,11 +14,14 @@ const statusStyles = {
 };
 
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—");
+const toDateInput = (d) => (d ? new Date(d).toISOString().split("T")[0] : "");
 
 export default function AdminDashboard({ clients, shipments, stats }) {
   const [tab, setTab] = useState("overview");
   const [showClient, setShowClient] = useState(false);
   const [showShipment, setShowShipment] = useState(false);
+  const [editShipment, setEditShipment] = useState(null);
+  const [editClient, setEditClient] = useState(null);
   const [clientList, setClientList] = useState(clients);
   const [shipmentList, setShipmentList] = useState(shipments);
   const [search, setSearch] = useState("");
@@ -102,7 +105,7 @@ export default function AdminDashboard({ clients, shipments, stats }) {
               </thead>
               <tbody className="divide-y divide-navy-50">
                 {filteredShipments.map((s) => (
-                  <ShipmentRow key={s.id} shipment={s} onUpdate={(updated) =>
+                  <ShipmentRow key={s.id} shipment={s} onEdit={() => setEditShipment(s)} onUpdate={(updated) =>
                     setShipmentList((l) => l.map((x) => (x.id === updated.id ? updated : x)))} />
                 ))}
                 {filteredShipments.length === 0 && (
@@ -129,7 +132,7 @@ export default function AdminDashboard({ clients, shipments, stats }) {
                   <th className="px-5 py-3 font-semibold">Company</th>
                   <th className="px-5 py-3 font-semibold">Shipments</th>
                   <th className="px-5 py-3 font-semibold">Joined</th>
-                  <th className="px-5 py-3 font-semibold"></th>
+                  <th className="px-5 py-3 font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-navy-50">
@@ -140,8 +143,9 @@ export default function AdminDashboard({ clients, shipments, stats }) {
                     <td className="px-5 py-3 text-navy-500">{c.company || "—"}</td>
                     <td className="px-5 py-3"><span className="badge bg-teal-50 text-teal-700">{c._count?.shipments ?? 0}</span></td>
                     <td className="px-5 py-3 text-navy-400">{fmtDate(c.createdAt)}</td>
-                    <td className="px-5 py-3 text-right">
-                      <button onClick={async () => { if (confirm(`Delete client ${c.name}? This removes their login.`)) {
+                    <td className="px-5 py-3 text-right whitespace-nowrap">
+                      <button onClick={() => setEditClient(c)} className="text-xs font-medium text-teal-600 hover:text-teal-700 mr-3">Edit</button>
+                      <button onClick={async () => { if (confirm(`Delete client ${c.name}? This removes their login and all their shipments.`)) {
                         await fetch(`/api/clients/${c.id}`, { method: "DELETE" });
                         setClientList((l) => l.filter((x) => x.id !== c.id));
                       }}} className="text-xs font-medium text-red-500 hover:text-red-700">Delete</button>
@@ -166,6 +170,14 @@ export default function AdminDashboard({ clients, shipments, stats }) {
         setShipmentList((l) => [s, ...l]);
         setShowShipment(false);
       }} />}
+      {editShipment && <EditShipmentModal shipment={editShipment} clients={clientList} onClose={() => setEditShipment(null)} onSaved={(updated) => {
+        setShipmentList((l) => l.map((x) => (x.id === updated.id ? updated : x)));
+        setEditShipment(null);
+      }} />}
+      {editClient && <EditClientModal client={editClient} onClose={() => setEditClient(null)} onSaved={(updated) => {
+        setClientList((l) => l.map((x) => (x.id === updated.id ? { ...x, ...updated } : x)));
+        setEditClient(null);
+      }} />}
     </div>
   );
 }
@@ -180,7 +192,7 @@ function StatCard({ label, value, accent }) {
   );
 }
 
-function ShipmentRow({ shipment, onUpdate }) {
+function ShipmentRow({ shipment, onEdit, onUpdate }) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -190,8 +202,9 @@ function ShipmentRow({ shipment, onUpdate }) {
         <td className="px-5 py-3 text-navy-500">{shipment.origin} → {shipment.destination}</td>
         <td className="px-5 py-3 text-navy-400">{fmtDate(shipment.eta)}</td>
         <td className="px-5 py-3"><span className={`badge ${statusStyles[shipment.status]}`}>{shipment.status.replace(/_/g, " ")}</span></td>
-        <td className="px-5 py-3 text-right">
-          <button onClick={() => setOpen(!open)} className="text-xs font-medium text-teal-600 hover:text-teal-700">{open ? "Close" : "Update"}</button>
+        <td className="px-5 py-3 text-right whitespace-nowrap">
+          <button onClick={() => setOpen(!open)} className="text-xs font-medium text-navy-500 hover:text-navy-700 mr-3">{open ? "Close" : "Status"}</button>
+          <button onClick={onEdit} className="text-xs font-medium text-teal-600 hover:text-teal-700">Edit</button>
         </td>
       </tr>
       {open && (
@@ -217,7 +230,7 @@ function ShipmentRow({ shipment, onUpdate }) {
                 });
                 const data = await res.json();
                 if (res.ok) onUpdate(data.shipment);
-              }} className="btn-primary">Save</button>
+              }} className="btn-primary">Save Status</button>
             </div>
           </td>
         </tr>
@@ -277,33 +290,126 @@ function ShipmentModal({ clients, onClose, onCreated }) {
         if (!res.ok) { setError(data.error || "Failed to create shipment"); return; }
         onCreated(data.shipment);
       }}>
+        <ShipmentFields clients={clients} />
+        {error && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+        <div className="mt-6 flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
+          <button type="submit" disabled={loading} className="btn-primary">{loading ? "Creating…" : "Create Shipment"}</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function EditShipmentModal({ shipment, clients, onClose, onSaved }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  return (
+    <Modal title={`Edit Shipment — ${shipment.trackingNumber}`} onClose={onClose}>
+      <form onSubmit={async (e) => {
+        e.preventDefault(); setLoading(true); setError("");
+        const fd = new FormData(e.target);
+        const body = Object.fromEntries(fd);
+        const res = await fetch(`/api/shipments/${shipment.id}`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        setLoading(false);
+        if (!res.ok) { setError(data.error || "Failed to update shipment"); return; }
+        onSaved(data.shipment);
+      }}>
+        <ShipmentFields clients={clients} defaults={shipment} />
+        {error && <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+        <div className="mt-6 flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
+          <button type="submit" disabled={loading} className="btn-primary">{loading ? "Saving…" : "Save Changes"}</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function ShipmentFields({ clients, defaults }) {
+  const d = defaults || {};
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="label">Client *</label>
+        <select name="clientId" required defaultValue={d.clientId || ""} className="input">
+          <option value="">Select a client…</option>
+          {clients.map((c) => <option key={c.id} value={c.id}>{c.name} — {c.email}</option>)}
+        </select>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div><label className="label">Origin *</label><input name="origin" required defaultValue={d.origin || ""} className="input" placeholder="Shanghai, CN" /></div>
+        <div><label className="label">Destination *</label><input name="destination" required defaultValue={d.destination || ""} className="input" placeholder="Rotterdam, NL" /></div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div><label className="label">Carrier</label><input name="carrier" defaultValue={d.carrier || ""} className="input" placeholder="Maersk" /></div>
+        <div><label className="label">Service</label><input name="service" defaultValue={d.service || ""} className="input" placeholder="FCL / LCL / Air" /></div>
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        <div><label className="label">Pieces</label><input name="pieces" type="number" min="0" defaultValue={d.pieces ?? 0} className="input" /></div>
+        <div><label className="label">Weight</label><input name="weight" defaultValue={d.weight || ""} className="input" placeholder="1200 kg" /></div>
+        <div><label className="label">ETA</label><input name="eta" type="date" defaultValue={toDateInput(d.eta)} className="input" /></div>
+      </div>
+      <div>
+        <label className="label">Status</label>
+        <select name="status" defaultValue={d.status || "BOOKED"} className="input">
+          {STATUSES.map((s) => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}
+        </select>
+      </div>
+      <div><label className="label">Notes</label><textarea name="notes" rows={2} defaultValue={d.notes || ""} className="input" /></div>
+    </div>
+  );
+}
+
+function EditClientModal({ client, onClose, onSaved }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [resetPwd, setResetPwd] = useState(false);
+  const [newPwd, setNewPwd] = useState("");
+  return (
+    <Modal title={`Edit Client — ${client.name}`} onClose={onClose}>
+      <form onSubmit={async (e) => {
+        e.preventDefault(); setLoading(true); setError("");
+        const fd = new FormData(e.target);
+        const body = Object.fromEntries(fd);
+        if (resetPwd && newPwd) body.password = newPwd;
+        const res = await fetch(`/api/clients/${client.id}`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        setLoading(false);
+        if (!res.ok) { setError(data.error || "Failed to update client"); return; }
+        onSaved(data.client);
+      }}>
         <div className="space-y-4">
-          <div>
-            <label className="label">Client *</label>
-            <select name="clientId" required className="input">
-              <option value="">Select a client…</option>
-              {clients.map((c) => <option key={c.id} value={c.id}>{c.name} — {c.email}</option>)}
-            </select>
-          </div>
+          <div><label className="label">Full Name *</label><input name="name" required defaultValue={client.name} className="input" /></div>
+          <div><label className="label">Email Address *</label><input name="email" type="email" required defaultValue={client.email} className="input" /></div>
           <div className="grid grid-cols-2 gap-4">
-            <div><label className="label">Origin *</label><input name="origin" required className="input" placeholder="Shanghai, CN" /></div>
-            <div><label className="label">Destination *</label><input name="destination" required className="input" placeholder="Rotterdam, NL" /></div>
+            <div><label className="label">Company</label><input name="company" defaultValue={client.company || ""} className="input" /></div>
+            <div><label className="label">Phone</label><input name="phone" defaultValue={client.phone || ""} className="input" /></div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div><label className="label">Carrier</label><input name="carrier" className="input" placeholder="Maersk" /></div>
-            <div><label className="label">Service</label><input name="service" className="input" placeholder="FCL / LCL / Air" /></div>
+          <div className="rounded-lg border border-navy-100 p-4">
+            <label className="flex items-center gap-2 text-sm font-medium text-navy-700">
+              <input type="checkbox" checked={resetPwd} onChange={(e) => setResetPwd(e.target.checked)} className="h-4 w-4 rounded border-navy-300 text-teal-500 focus:ring-teal-400" />
+              Reset password
+            </label>
+            {resetPwd && (
+              <div className="mt-3">
+                <input value={newPwd} onChange={(e) => setNewPwd(e.target.value)} className="input" placeholder="Enter new password" />
+                <p className="mt-1 text-xs text-navy-400">The client will need to use this new password to log in.</p>
+              </div>
+            )}
           </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div><label className="label">Pieces</label><input name="pieces" type="number" min="0" defaultValue="0" className="input" /></div>
-            <div><label className="label">Weight</label><input name="weight" className="input" placeholder="1200 kg" /></div>
-            <div><label className="label">ETA</label><input name="eta" type="date" className="input" /></div>
-          </div>
-          <div><label className="label">Notes</label><textarea name="notes" rows={2} className="input" /></div>
           {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
         </div>
         <div className="mt-6 flex justify-end gap-3">
           <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
-          <button type="submit" disabled={loading} className="btn-primary">{loading ? "Creating…" : "Create Shipment"}</button>
+          <button type="submit" disabled={loading} className="btn-primary">{loading ? "Saving…" : "Save Changes"}</button>
         </div>
       </form>
     </Modal>

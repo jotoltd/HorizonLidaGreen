@@ -11,6 +11,10 @@ export async function PATCH(request, { params }) {
   const id = Number(params.id);
   const body = await request.json();
 
+  // Fetch current shipment to compare status
+  const { data: current } = await supabase.from("Shipment").select("status").eq("id", id).single();
+  const currentStatus = body.currentStatus || current?.status;
+
   const data = {};
   const allowed = ["origin", "destination", "carrier", "service", "pieces", "weight", "eta", "notes", "clientId"];
   for (const k of allowed) {
@@ -21,7 +25,7 @@ export async function PATCH(request, { params }) {
     }
   }
 
-  const statusChanged = body.status && body.status !== body.currentStatus;
+  const statusChanged = body.status && body.status !== currentStatus;
   if (body.status) data.status = body.status;
   data.updatedAt = new Date().toISOString();
 

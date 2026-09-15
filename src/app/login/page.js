@@ -16,7 +16,7 @@ export default async function LoginPage() {
       <div className="flex flex-1">
         {/* Left brand panel */}
         <div className="relative hidden w-1/2 flex-col justify-between bg-gradient-to-br from-navy-900 via-navy-800 to-navy-700 p-12 text-white lg:flex">
-          <Logo />
+          <Logo variant="dark" />
           <div>
             <h1 className="text-4xl font-bold leading-tight">
               Your freight,<br />
