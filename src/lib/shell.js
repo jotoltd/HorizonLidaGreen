@@ -30,13 +30,13 @@ export function Shell({ user, title, children, actions }) {
     <div className="min-h-screen bg-navy-50">
       <header className="sticky top-0 z-20 border-b border-navy-100 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-4 sm:gap-8">
             <Link href={user.role === "ADMIN" ? "/admin" : "/portal"}>
               <Logo />
             </Link>
             <h1 className="hidden text-base font-semibold text-navy-700 sm:block">{title}</h1>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <div className="hidden text-right sm:block">
               <div className="text-sm font-semibold text-navy-800">{user.name}</div>
               <div className="text-xs text-navy-400">{user.email}</div>
@@ -49,8 +49,8 @@ export function Shell({ user, title, children, actions }) {
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-navy-800">{title}</h2>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-bold text-navy-800 sm:text-xl">{title}</h2>
           {actions}
         </div>
         {children}
