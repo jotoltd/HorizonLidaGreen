@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getTokenFromRequest } from "@/lib/auth";
+import { readShipmentData } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -74,9 +75,19 @@ export async function GET(request) {
       eventsByShipment[e.shipmentId].push(e);
     });
 
+    // Attach documents + insurance claim metadata per shipment.
+    const dataByShipment = {};
+    await Promise.all(
+      shipmentIds.map(async (id) => {
+        dataByShipment[id] = await readShipmentData(id);
+      })
+    );
+
     const shipmentsWithEvents = (shipments || []).map((s) => ({
       ...s,
       events: eventsByShipment[s.id] || [],
+      documents: dataByShipment[s.id]?.documents || [],
+      claim: dataByShipment[s.id]?.claim || null,
     }));
 
     return NextResponse.json({ shipments: shipmentsWithEvents });

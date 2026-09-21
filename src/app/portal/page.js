@@ -1,5 +1,6 @@
 import { requireClient, Shell } from "@/lib/shell";
 import { supabase } from "@/lib/supabase";
+import { readShipmentData } from "@/lib/storage";
 import ClientPortal from "./ClientPortal";
 
 export const dynamic = "force-dynamic";
@@ -31,9 +32,19 @@ export default async function PortalPage() {
     eventsByShipment[e.shipmentId].push(e);
   });
 
+  // Attach documents + insurance claim metadata per shipment.
+  const dataByShipment = {};
+  await Promise.all(
+    shipmentIds.map(async (id) => {
+      dataByShipment[id] = await readShipmentData(id);
+    })
+  );
+
   const shipmentsWithEvents = (shipments || []).map((s) => ({
     ...s,
     events: eventsByShipment[s.id] || [],
+    documents: dataByShipment[s.id]?.documents || [],
+    claim: dataByShipment[s.id]?.claim || null,
   }));
 
   const stats = {
