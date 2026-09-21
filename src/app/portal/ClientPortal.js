@@ -1,7 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { isOverdue } from "@/lib/ShipmentResult";
+import {
+  DOC_TYPE_LABELS,
+  DOC_TYPE_STYLES,
+  CLAIM_STATUS_LABELS,
+  CLAIM_STATUS_STYLES,
+  CLAIM_DOC_STATUS_LABELS,
+  CLAIM_DOC_STATUS_STYLES,
+  OUTSTANDING_CLAIM_DOC_STATUSES,
+} from "@/lib/docs";
 
 const statusStyles = {
   BOOKED: "bg-navy-100 text-navy-700",
@@ -17,17 +26,66 @@ const STEP_LABELS = { BOOKED: "Booked", IN_TRANSIT: "In Transit", OUT_FOR_DELIVE
 
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—");
 const fmtDateTime = (d) => (d ? new Date(d).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
+const fmtSize = (n) => (n == null ? "" : n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
 
-export default function ClientPortal({ shipments, stats }) {
+const POLL_MS = 15000;
+
+export default function ClientPortal({ shipments: initialShipments }) {
+  const [shipments, setShipments] = useState(initialShipments);
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState("");
+  const [lastRefresh, setLastRefresh] = useState(null);
+  const selectedIdRef = useRef(null);
+  selectedIdRef.current = selected?.id ?? null;
+
+  const refresh = useCallback(async () => {
+    try {
+      const res = await fetch("/api/shipments", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.shipments) return;
+      setShipments(data.shipments);
+      setLastRefresh(new Date());
+      if (selectedIdRef.current) {
+        const updated = data.shipments.find((s) => s.id === selectedIdRef.current);
+        setSelected(updated || null);
+      }
+    } catch {
+      // Keep the current view on transient network errors.
+    }
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(refresh, POLL_MS);
+    const onVisible = () => { if (document.visibilityState === "visible") refresh(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { clearInterval(interval); document.removeEventListener("visibilitychange", onVisible); };
+  }, [refresh]);
+
+  const stats = {
+    total: shipments.length,
+    booked: shipments.filter((s) => s.status === "BOOKED").length,
+    inTransit: shipments.filter((s) => s.status === "IN_TRANSIT" || s.status === "OUT_FOR_DELIVERY").length,
+    delivered: shipments.filter((s) => s.status === "DELIVERED").length,
+  };
 
   const filtered = shipments.filter((s) => {
     const q = search.toLowerCase();
     return !q || s.trackingNumber.toLowerCase().includes(q) || s.origin.toLowerCase().includes(q) || s.destination.toLowerCase().includes(q);
   });
 
-  if (selected) return <ShipmentDetail shipment={selected} onBack={() => setSelected(null)} />;
+  if (selected) {
+    return (
+      <ShipmentDetail
+        shipment={selected}
+        onBack={() => setSelected(null)}
+        onShipmentUpdate={(updated) => {
+          setSelected(updated);
+          setShipments((l) => l.map((x) => (x.id === updated.id ? updated : x)));
+        }}
+      />
+    );
+  }
 
   return (
     <div>
@@ -39,8 +97,12 @@ export default function ClientPortal({ shipments, stats }) {
       </div>
 
       <div className="card">
-        <div className="border-b border-navy-100 px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-navy-100 px-5 py-4">
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by tracking number or route…" className="input w-full sm:max-w-md" />
+          <span className="flex items-center gap-1.5 text-xs text-navy-300">
+            <span className="h-2 w-2 rounded-full bg-teal-400" />
+            Live{lastRefresh ? ` · updated ${lastRefresh.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : ""}
+          </span>
         </div>
 
         {/* Mobile card layout */}
@@ -56,6 +118,7 @@ export default function ClientPortal({ shipments, stats }) {
                 <span className="text-xs text-navy-400">Carrier: {s.carrier || "—"}</span>
                 <span className="text-xs text-navy-400">ETA: {fmtDate(s.eta)}</span>
                 {isOverdue(s) && <span className="badge bg-red-50 text-red-600">Overdue</span>}
+                {s.claim && <span className="badge bg-purple-50 text-purple-700">Claim</span>}
               </div>
             </div>
           ))}
@@ -86,6 +149,7 @@ export default function ClientPortal({ shipments, stats }) {
                   <td className="px-5 py-3.5">
                     <span className={`badge ${statusStyles[s.status]}`}>{s.status.replace(/_/g, " ")}</span>
                     {isOverdue(s) && <span className="badge ml-1 bg-red-50 text-red-600">Overdue</span>}
+                    {s.claim && <span className="badge ml-1 bg-purple-50 text-purple-700">Claim</span>}
                   </td>
                 </tr>
               ))}
@@ -109,9 +173,11 @@ function StatCard({ label, value }) {
   );
 }
 
-function ShipmentDetail({ shipment, onBack }) {
+function ShipmentDetail({ shipment, onBack, onShipmentUpdate }) {
   const currentStep = STEP_ORDER.indexOf(shipment.status);
   const cancelled = shipment.status === "ON_HOLD" || shipment.status === "CANCELLED";
+  const documents = shipment.documents || [];
+  const claim = shipment.claim || null;
 
   return (
     <div>
@@ -182,6 +248,10 @@ function ShipmentDetail({ shipment, onBack }) {
         </div>
       )}
 
+      {claim && <ClaimCard shipment={shipment} claim={claim} onShipmentUpdate={onShipmentUpdate} />}
+
+      <DocumentsCard shipment={shipment} documents={documents} />
+
       <div className="card p-4 sm:p-6">
         <h3 className="mb-4 font-semibold text-navy-800">Tracking History</h3>
         <div className="space-y-0">
@@ -205,6 +275,158 @@ function ShipmentDetail({ shipment, onBack }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function DocumentsCard({ shipment, documents }) {
+  return (
+    <div className="card mb-6 p-4 sm:p-6">
+      <h3 className="mb-1 font-semibold text-navy-800">Documents</h3>
+      <p className="mb-4 text-xs text-navy-400">Collection &amp; delivery reports, signed proof of delivery, receipts and other files for this shipment.</p>
+      {documents.length === 0 ? (
+        <p className="text-sm text-navy-300">No documents have been uploaded yet. New documents appear here automatically.</p>
+      ) : (
+        <ul className="divide-y divide-navy-50">
+          {documents.map((doc) => (
+            <li key={doc.id} className="flex items-center justify-between gap-3 py-3">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="truncate text-sm font-medium text-navy-800">{doc.title || doc.fileName}</span>
+                  <span className={`badge ${DOC_TYPE_STYLES[doc.type] || DOC_TYPE_STYLES.OTHER}`}>
+                    {DOC_TYPE_LABELS[doc.type] || "Document"}
+                  </span>
+                </div>
+                <div className="mt-0.5 text-xs text-navy-400">
+                  {doc.fileName} {doc.size ? `· ${fmtSize(doc.size)}` : ""} · Uploaded {fmtDateTime(doc.createdAt || doc.uploadedAt)}
+                </div>
+              </div>
+              <a
+                href={`/api/shipments/${shipment.id}/documents/${doc.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 text-sm font-medium text-teal-600 hover:text-teal-700"
+              >
+                Download
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function ClaimCard({ shipment, claim, onShipmentUpdate }) {
+  const docs = claim.documents || [];
+  const actionable = docs.filter((d) => d.status !== "NOT_APPLICABLE");
+  const done = actionable.filter((d) => ["SUBMITTED", "RECEIVED", "APPROVED"].includes(d.status)).length;
+  const outstanding = docs.filter((d) => OUTSTANDING_CLAIM_DOC_STATUSES.includes(d.status));
+
+  return (
+    <div className="card mb-6 p-4 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 className="font-semibold text-navy-800">Insurance Claim</h3>
+        <span className={`badge px-3 py-1 text-sm ${CLAIM_STATUS_STYLES[claim.status] || "bg-navy-100 text-navy-700"}`}>
+          {CLAIM_STATUS_LABELS[claim.status] || claim.status}
+        </span>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Detail label="Claim Reference" value={claim.claimNumber || "—"} />
+        <Detail label="Insurer" value={claim.insurer || "—"} />
+        <Detail label="Incident Date" value={fmtDate(claim.incidentDate)} />
+        <Detail label="Last Updated" value={fmtDateTime(claim.updatedAt)} />
+      </div>
+      {claim.description && (
+        <div className="mt-4 rounded-lg bg-navy-50 px-4 py-3">
+          <div className="text-xs font-semibold text-navy-400">Incident Details</div>
+          <p className="mt-1 text-sm text-navy-700">{claim.description}</p>
+        </div>
+      )}
+
+      <div className="mt-5">
+        <div className="mb-2 flex items-center justify-between text-xs text-navy-400">
+          <span>Document checklist</span>
+          <span>{done} of {actionable.length} submitted{outstanding.length > 0 ? ` · ${outstanding.length} outstanding` : ""}</span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-navy-100">
+          <div
+            className="h-full rounded-full bg-teal-500 transition-all"
+            style={{ width: `${actionable.length ? Math.round((done / actionable.length) * 100) : 0}%` }}
+          />
+        </div>
+      </div>
+
+      <ul className="mt-4 divide-y divide-navy-50">
+        {docs.map((doc) => (
+          <ClaimDocRow key={doc.key} shipment={shipment} doc={doc} onShipmentUpdate={onShipmentUpdate} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function ClaimDocRow({ shipment, doc, onShipmentUpdate }) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const inputRef = useRef(null);
+
+  const canUpload = doc.status !== "NOT_APPLICABLE";
+
+  async function handleFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    setError("");
+    const form = new FormData();
+    form.append("key", doc.key);
+    form.append("file", file);
+    const res = await fetch(`/api/shipments/${shipment.id}/claim/upload`, { method: "POST", body: form });
+    const data = await res.json().catch(() => ({}));
+    setUploading(false);
+    if (!res.ok) { setError(data.error || "Upload failed"); return; }
+    onShipmentUpdate({ ...shipment, claim: data.claim });
+  }
+
+  return (
+    <li className="py-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-sm font-medium text-navy-800">{doc.label}</div>
+          {doc.notes && <div className="mt-0.5 text-xs text-navy-400">{doc.notes}</div>}
+          {(doc.files || []).map((f) => (
+            <a
+              key={f.id}
+              href={`/api/shipments/${shipment.id}/documents/${f.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-0.5 block truncate text-xs text-teal-600 hover:text-teal-700"
+            >
+              {f.fileName} {f.size ? `(${fmtSize(f.size)})` : ""} · {fmtDateTime(f.uploadedAt)}
+            </a>
+          ))}
+          {error && <div className="mt-0.5 text-xs text-red-500">{error}</div>}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className={`badge ${CLAIM_DOC_STATUS_STYLES[doc.status] || "bg-navy-50 text-navy-500"}`}>
+            {CLAIM_DOC_STATUS_LABELS[doc.status] || doc.status}
+          </span>
+          {canUpload && (
+            <>
+              <input ref={inputRef} type="file" className="hidden" onChange={handleFile} />
+              <button
+                onClick={() => inputRef.current?.click()}
+                disabled={uploading}
+                className="text-xs font-medium text-teal-600 hover:text-teal-700 disabled:opacity-50"
+              >
+                {uploading ? "Uploading…" : (doc.files || []).length ? "Add file" : "Upload"}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </li>
   );
 }
 

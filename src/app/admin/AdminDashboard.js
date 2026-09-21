@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { isOverdue } from "@/lib/ShipmentResult";
+import ShipmentDocs from "./ShipmentDocs";
 
 const STATUSES = ["BOOKED", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED", "ON_HOLD", "CANCELLED"];
 const PAGE_SIZE = 10;
@@ -26,6 +27,7 @@ export default function AdminDashboard({ clients, shipments, stats }) {
   const [editClient, setEditClient] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [cloneShipment, setCloneShipment] = useState(null);
+  const [docsShipment, setDocsShipment] = useState(null);
   const [clientList, setClientList] = useState(clients);
   const [shipmentList, setShipmentList] = useState(shipments);
   const [search, setSearch] = useState("");
@@ -164,7 +166,7 @@ export default function AdminDashboard({ clients, shipments, stats }) {
           <div className="divide-y divide-navy-50 sm:hidden">
             {pagedShipments.map((s) => (
               <ShipmentCard key={s.id} shipment={s} selected={selectedIds.has(s.id)} onToggleSelect={() => toggleSelect(s.id)}
-                onEdit={() => setEditShipment(s)} onClone={() => setCloneShipment(s)}
+                onEdit={() => setEditShipment(s)} onClone={() => setCloneShipment(s)} onDocs={() => setDocsShipment(s)}
                 onDelete={async () => { if (confirm(`Delete shipment ${s.trackingNumber}? This removes it and all its tracking events.`)) {
                   await fetch(`/api/shipments/${s.id}`, { method: "DELETE" });
                   setShipmentList((l) => l.filter((x) => x.id !== s.id));
@@ -196,7 +198,7 @@ export default function AdminDashboard({ clients, shipments, stats }) {
               <tbody className="divide-y divide-navy-50">
                 {pagedShipments.map((s) => (
                   <ShipmentRow key={s.id} shipment={s} selected={selectedIds.has(s.id)} onToggleSelect={() => toggleSelect(s.id)}
-                    onEdit={() => setEditShipment(s)} onClone={() => setCloneShipment(s)}
+                    onEdit={() => setEditShipment(s)} onClone={() => setCloneShipment(s)} onDocs={() => setDocsShipment(s)}
                     onDelete={async () => { if (confirm(`Delete shipment ${s.trackingNumber}? This removes it and all its tracking events.`)) {
                       await fetch(`/api/shipments/${s.id}`, { method: "DELETE" });
                       setShipmentList((l) => l.filter((x) => x.id !== s.id));
@@ -333,6 +335,7 @@ export default function AdminDashboard({ clients, shipments, stats }) {
         setEditClient(null);
       }} />}
       {showPassword && <ChangePasswordModal onClose={() => setShowPassword(false)} />}
+      {docsShipment && <ShipmentDocs shipment={docsShipment} onClose={() => setDocsShipment(null)} />}
     </div>
   );
 }
@@ -347,7 +350,7 @@ function StatCard({ label, value, accent }) {
   );
 }
 
-function ShipmentRow({ shipment, selected, onToggleSelect, onEdit, onClone, onDelete, onUpdate }) {
+function ShipmentRow({ shipment, selected, onToggleSelect, onEdit, onClone, onDelete, onUpdate, onDocs }) {
   const [open, setOpen] = useState(false);
   const overdue = isOverdue(shipment);
   return (
@@ -367,6 +370,7 @@ function ShipmentRow({ shipment, selected, onToggleSelect, onEdit, onClone, onDe
         <td className="px-5 py-3 text-right whitespace-nowrap">
           <button onClick={() => setOpen(!open)} className="text-xs font-medium text-navy-500 hover:text-navy-700 mr-3">{open ? "Close" : "Status"}</button>
           <button onClick={onEdit} className="text-xs font-medium text-teal-600 hover:text-teal-700 mr-3">Edit</button>
+          <button onClick={onDocs} className="text-xs font-medium text-purple-600 hover:text-purple-700 mr-3">Docs</button>
           <button onClick={onClone} className="text-xs font-medium text-navy-500 hover:text-navy-700 mr-3">Clone</button>
           <button onClick={onDelete} className="text-xs font-medium text-red-500 hover:text-red-700">Delete</button>
         </td>
@@ -403,7 +407,7 @@ function ShipmentRow({ shipment, selected, onToggleSelect, onEdit, onClone, onDe
   );
 }
 
-function ShipmentCard({ shipment, selected, onToggleSelect, onEdit, onClone, onDelete, onUpdate }) {
+function ShipmentCard({ shipment, selected, onToggleSelect, onEdit, onClone, onDelete, onUpdate, onDocs }) {
   const [open, setOpen] = useState(false);
   const overdue = isOverdue(shipment);
   return (
@@ -424,6 +428,7 @@ function ShipmentCard({ shipment, selected, onToggleSelect, onEdit, onClone, onD
           <div className="mt-3 flex flex-wrap gap-2">
             <button onClick={() => setOpen(!open)} className="text-xs font-medium text-navy-500 hover:text-navy-700">{open ? "Close" : "Status"}</button>
             <button onClick={onEdit} className="text-xs font-medium text-teal-600 hover:text-teal-700">Edit</button>
+            <button onClick={onDocs} className="text-xs font-medium text-purple-600 hover:text-purple-700">Docs</button>
             <button onClick={onClone} className="text-xs font-medium text-navy-500 hover:text-navy-700">Clone</button>
             <button onClick={onDelete} className="text-xs font-medium text-red-500 hover:text-red-700">Delete</button>
           </div>
