@@ -99,7 +99,7 @@ export default function AdminDashboard({ clients, shipments, stats }) {
 
       {/* Tabs */}
       <div className="mb-5 flex gap-1 border-b border-navy-100">
-        {["overview", "shipments", "clients"].map((t) => (
+        {["overview", "shipments", "clients", "help"].map((t) => (
           <button key={t} onClick={() => setTab(t)}
             className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold capitalize transition ${
               tab === t ? "border-teal-500 text-teal-600" : "border-transparent text-navy-400 hover:text-navy-600"}`}>
@@ -312,6 +312,8 @@ export default function AdminDashboard({ clients, shipments, stats }) {
           )}
         </div>
       )}
+
+      {tab === "help" && <HelpPanel />}
 
       {showClient && <ClientModal onClose={() => setShowClient(false)} onCreated={(c, pwd) => {
         setClientList((l) => [{ ...c, _count: { shipments: 0 }, createdAt: new Date().toISOString() }, ...l]);
@@ -684,6 +686,63 @@ function ChangePasswordModal({ onClose }) {
         </form>
       )}
     </Modal>
+  );
+}
+
+function HelpPanel() {
+  return (
+    <div className="space-y-6">
+      <HelpCard title="1. Getting Started">
+        <Step n={1}>Create a client via <b>+ New Client</b> (Clients tab or Quick Actions). If you leave the password blank, one is generated and shown <b>once</b> — copy it and share it with your customer along with their login email.</Step>
+        <Step n={2}>Create a shipment via <b>+ New Shipment</b> and assign it to that client. A tracking number (e.g. HLG…) is generated automatically — customers can use it to log in and follow their vehicle, or track it publicly on the Track page.</Step>
+      </HelpCard>
+
+      <HelpCard title="2. Managing Shipments">
+        <Step n={1}>In the <b>Shipments</b> tab, click <b>Status</b> on a row to update progress (Booked → In Transit → Out for Delivery → Delivered). You can add a location; every change is logged in the customer's tracking history.</Step>
+        <Step n={2}><b>Edit</b> changes details, <b>Clone</b> duplicates a shipment, <b>Delete</b> removes it and all its files. Tick the checkboxes to update many shipments' status at once.</Step>
+      </HelpCard>
+
+      <HelpCard title="3. Uploading Documents">
+        <Step n={1}>Click <b>Docs</b> on a shipment to open the document manager.</Step>
+        <Step n={2}>Choose the document type — collection report, delivery/hand-over report, signed proof of delivery, payment receipt, invoice, photos, or other — pick the file, and press <b>Upload</b>. It appears in the customer's portal immediately.</Step>
+      </HelpCard>
+
+      <HelpCard title="4. Insurance Claims">
+        <Step n={1}>In the <b>Docs</b> modal, press <b>+ Open Insurance Claim</b> and fill in the claim reference, insurer, incident date and details.</Step>
+        <Step n={2}>A 14-item document checklist is created automatically. Set each item's status as it progresses:</Step>
+        <ul className="ml-9 mt-1 space-y-1 text-sm text-navy-600">
+          <li><b>Required</b> — still needed from the customer</li>
+          <li><b>Pending</b> — being gathered / in progress</li>
+          <li><b>Submitted</b> — sent in (set automatically when a file is uploaded)</li>
+          <li><b>Received</b> — acknowledged by the insurer</li>
+          <li><b>Approved</b> — accepted by the insurer</li>
+          <li><b>Not Applicable</b> — not needed for this claim</li>
+        </ul>
+        <Step n={3}>Customers can upload outstanding items themselves from their portal — review each upload and move it to Received or Approved. Update the overall claim status (Reported → Under Review → Approved → Settled / Rejected) as the insurer responds.</Step>
+      </HelpCard>
+
+      <HelpCard title="5. What Your Customer Sees">
+        <p className="text-sm text-navy-600">When clients log in they see their shipments with live progress, every document you upload (with download links), the insurance claim status and checklist progress, and full tracking history. The page refreshes automatically every 15 seconds — uploads and status changes appear without them reloading.</p>
+      </HelpCard>
+    </div>
+  );
+}
+
+function HelpCard({ title, children }) {
+  return (
+    <div className="card p-5">
+      <h3 className="mb-3 font-semibold text-navy-800">{title}</h3>
+      <div className="space-y-2.5">{children}</div>
+    </div>
+  );
+}
+
+function Step({ n, children }) {
+  return (
+    <div className="flex gap-3">
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-teal-100 text-xs font-bold text-teal-700">{n}</span>
+      <p className="text-sm text-navy-600">{children}</p>
+    </div>
   );
 }
 
