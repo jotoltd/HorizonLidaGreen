@@ -39,15 +39,15 @@ export default function TrackPage() {
 
       <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-navy-800">Track Your Shipment</h1>
-          <p className="mt-2 text-navy-400">Enter your tracking number to see live status.</p>
+          <h1 className="text-3xl font-bold text-navy-800">Track a delivery</h1>
+          <p className="mt-2 text-navy-400">Enter your delivery reference to see live status.</p>
         </div>
 
         <form onSubmit={handleSearch} className="mx-auto mt-8 flex max-w-lg flex-col gap-3 sm:flex-row">
           <input
             value={tracking}
             onChange={(e) => setTracking(e.target.value)}
-            placeholder="e.g. HLG123456789"
+            placeholder="e.g. HLG26092101"
             className="input font-mono uppercase"
             autoCapitalize="characters"
           />

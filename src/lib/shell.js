@@ -25,39 +25,102 @@ export async function requireClient() {
   return user;
 }
 
-export function Shell({ user, title, children, actions }) {
+const CLIENT_NAV = [
+  { href: "/portal", label: "Deliveries" },
+  { href: "/portal/bookings", label: "Bookings" },
+  { href: "/portal/track", label: "Track delivery" },
+  { href: "/portal/contact", label: "Contact" },
+];
+
+const ADMIN_NAV = [
+  { href: "/admin", label: "Deliveries" },
+  { href: "/admin/bookings", label: "Bookings" },
+  { href: "/admin/clients", label: "Clients" },
+  { href: "/admin/track", label: "Track delivery" },
+  { href: "/admin/contact", label: "Contact" },
+];
+
+export function Shell({ user, title, children, actions, currentHref }) {
+  const nav = user.role === "ADMIN" ? ADMIN_NAV : CLIENT_NAV;
+  const workspaceLabel = user.role === "ADMIN" ? "Administrator workspace" : "Client workspace";
   return (
-    <div className="min-h-screen bg-navy-50">
-      <header className="sticky top-0 z-20 border-b border-navy-100 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-4 sm:gap-8">
-            <Link href={user.role === "ADMIN" ? "/admin" : "/portal"}>
-              <Logo />
-            </Link>
-            <h1 className="hidden text-base font-semibold text-navy-700 sm:block">{title}</h1>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-4">
-            <div className="hidden text-right sm:block">
-              <div className="text-sm font-semibold text-navy-800">{user.name}</div>
-              <div className="text-xs text-navy-400">{user.email}</div>
-            </div>
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-navy-800 text-sm font-semibold text-white">
-              {user.name?.charAt(0).toUpperCase()}
-            </div>
+    <div className="min-h-screen bg-sage-100">
+      <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+        {/* Top bar */}
+        <header className="mb-6 flex items-center justify-between gap-4 rounded-2xl bg-white px-5 py-4 shadow-sm">
+          <Link href={user.role === "ADMIN" ? "/admin" : "/portal"}>
+            <Logo />
+          </Link>
+          <div className="flex items-center gap-4">
+            <span className="hidden text-sm text-stone-500 sm:inline">{workspaceLabel}</span>
             <SignOutButton />
           </div>
+        </header>
+
+        <div className="flex gap-6 lg:gap-10">
+          {/* Sidebar nav on a white panel */}
+          <aside className="hidden w-52 shrink-0 flex-col rounded-2xl bg-white p-5 shadow-sm md:flex">
+            <nav className="flex flex-col gap-1">
+              {nav.map((item) => {
+                const active = currentHref === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+                      active
+                        ? "bg-sage-100 text-charcoal"
+                        : "text-stone-600 hover:bg-sage-100/70 hover:text-charcoal"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="mt-auto pt-8">
+              <div className="text-[10px] font-bold tracking-widest text-stone-400">
+                HORIZON<br />LIDA GREEN
+              </div>
+            </div>
+          </aside>
+
+          {/* Main column */}
+          <div className="min-w-0 flex-1">
+            {/* Mobile nav */}
+            <nav className="mb-4 flex flex-wrap gap-1 md:hidden">
+              {nav.map((item) => {
+                const active = currentHref === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                      active
+                        ? "bg-sage-200 text-charcoal"
+                        : "bg-white text-stone-600 hover:bg-sage-200/60"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <h1 className="text-2xl font-bold text-charcoal sm:text-3xl">{title}</h1>
+              {actions}
+            </div>
+
+            <main>{children}</main>
+
+            <footer className="mt-8 text-center text-xs text-stone-400">
+              © {new Date().getFullYear()} Horizon Lida Green — Delivery Portal
+            </footer>
+          </div>
         </div>
-      </header>
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-bold text-navy-800 sm:text-xl">{title}</h2>
-          {actions}
-        </div>
-        {children}
-      </main>
-      <footer className="mx-auto max-w-7xl px-4 pb-8 text-center text-xs text-navy-300 sm:px-6">
-        © {new Date().getFullYear()} Horizon Lida Green — Freight Forwarding
-      </footer>
+      </div>
     </div>
   );
 }

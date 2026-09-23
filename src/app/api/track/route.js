@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { getTokenFromRequest } from "@/lib/auth";
+import { readShipmentData } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -30,20 +32,30 @@ export async function GET(request) {
     .eq("shipmentId", shipment.id)
     .order("occurredAt", { ascending: false });
 
-  // Return shipment + events, but exclude client personal details
-  return NextResponse.json({
-    shipment: {
-      trackingNumber: shipment.trackingNumber,
-      origin: shipment.origin,
-      destination: shipment.destination,
-      carrier: shipment.carrier,
-      service: shipment.service,
-      pieces: shipment.pieces,
-      weight: shipment.weight,
-      status: shipment.status,
-      eta: shipment.eta,
-      createdAt: shipment.createdAt,
-    },
-    events: events || [],
-  });
+  // Return shipment + events, but exclude client personal details.
+  // Authenticated users (admin or the owning client) also get the id and
+  // document count so the workspace track views can manage the delivery.
+  const user = getTokenFromRequest(request);
+  const authed = user && (user.role === "ADMIN" || user.id === shipment.clientId);
+
+  const payload = {
+    trackingNumber: shipment.trackingNumber,
+    origin: shipment.origin,
+    destination: shipment.destination,
+    carrier: shipment.carrier,
+    service: shipment.service,
+    pieces: shipment.pieces,
+    weight: shipment.weight,
+    status: shipment.status,
+    eta: shipment.eta,
+    createdAt: shipment.createdAt,
+  };
+
+  if (authed) {
+    payload.id = shipment.id;
+    const data = await readShipmentData(shipment.id).catch(() => null);
+    payload.documents = (data?.documents || []).length;
+  }
+
+  return NextResponse.json({ shipment: payload, events: events || [] });
 }

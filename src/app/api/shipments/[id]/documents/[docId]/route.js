@@ -24,7 +24,8 @@ export async function GET(request, { params }) {
   if (!file) return NextResponse.json({ error: "File not found." }, { status: 404 });
 
   try {
-    const url = await signedUrl(file.path);
+    const download = new URL(request.url).searchParams.get("download") === "1";
+    const url = await signedUrl(file.path, 3600, download);
     return NextResponse.redirect(url);
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
