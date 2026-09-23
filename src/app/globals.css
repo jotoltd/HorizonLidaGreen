@@ -3,17 +3,18 @@
 @tailwind utilities;
 
 :root {
-  --navy: #102a43;
-  --navy-deep: #0a1f33;
-  --teal: #2cc7c0;
+  --green: #2a4f2f;
+  --green-dark: #1f3522;
+  --navy: #1e3a5f;
+  --sage: #e4efe6;
 }
 
 html,
 body {
   padding: 0;
   margin: 0;
-  background: #f7fafc;
-  color: #102a43;
+  background: #eef4ea;
+  color: #1f3d2e;
 }
 
 * {
@@ -22,22 +23,22 @@ body {
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-lg bg-teal-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 disabled:opacity-50;
+    @apply inline-flex items-center justify-center rounded-lg bg-green-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 disabled:opacity-50;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-lg border border-navy-200 bg-white px-4 py-2.5 text-sm font-semibold text-navy-700 shadow-sm transition hover:bg-navy-50 focus:outline-none focus:ring-2 focus:ring-navy-300;
+    @apply inline-flex items-center justify-center rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-sm font-semibold text-charcoal shadow-sm transition hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-stone-300;
   }
   .btn-danger {
-    @apply inline-flex items-center justify-center rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-600;
+    @apply inline-flex items-center justify-center rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700;
   }
   .input {
-    @apply w-full rounded-lg border border-navy-200 bg-white px-3.5 py-2.5 text-sm text-navy-800 shadow-sm placeholder:text-navy-300 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-200;
+    @apply w-full rounded-lg border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-charcoal shadow-sm placeholder:text-stone-400 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200;
   }
   .label {
-    @apply mb-1.5 block text-sm font-medium text-navy-700;
+    @apply mb-1.5 block text-sm font-medium text-charcoal;
   }
   .card {
-    @apply rounded-xl border border-navy-100 bg-white shadow-sm;
+    @apply rounded-xl border border-stone-200 bg-white shadow-sm;
   }
   .badge {
     @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;

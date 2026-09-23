@@ -12,52 +12,63 @@ export default async function LoginPage() {
   if (user?.role === "CLIENT") redirect("/portal");
 
   return (
-    <div className="flex min-h-screen flex-col bg-navy-800">
-      <div className="flex flex-1">
-        {/* Left brand panel */}
-        <div className="relative hidden w-1/2 flex-col justify-between bg-gradient-to-br from-navy-900 via-navy-800 to-navy-700 p-12 text-white lg:flex">
-          <Logo variant="dark" />
-          <div>
-            <h1 className="text-4xl font-bold leading-tight">
-              Your freight,<br />
-              <span className="text-teal-400">in full view.</span>
-            </h1>
-            <p className="mt-4 max-w-md text-navy-100">
-              Track shipments in real time, manage clients, and keep your supply chain transparent — all from one fast portal.
-            </p>
-            <div className="mt-10 flex gap-8">
-              <div>
-                <div className="text-3xl font-bold text-teal-400">24/7</div>
-                <div className="text-sm text-navy-100">Live tracking</div>
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-teal-400">End-to-end</div>
-                <div className="text-sm text-navy-100">Visibility</div>
-              </div>
-            </div>
-          </div>
-          <p className="text-xs text-navy-200">© {new Date().getFullYear()} Horizon Lida Green</p>
+    <div className="relative flex min-h-screen flex-col overflow-hidden">
+      {/* Faded logistics backdrop */}
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url('/brand/bg-logistics.jpg')" }}
+      />
+      <div className="absolute inset-0 bg-white/80" />
+
+      {/* Top bar */}
+      <header className="relative z-10 flex items-center justify-between px-6 py-5 sm:px-12">
+        <Logo />
+        <Link
+          href="/contact"
+          className="text-sm font-semibold text-charcoal underline decoration-green-600 underline-offset-4 hover:text-green-700"
+        >
+          Contact us
+        </Link>
+      </header>
+
+      {/* Main */}
+      <main className="relative z-10 flex flex-1 flex-col items-center justify-center gap-12 px-6 py-10 lg:flex-row lg:justify-between lg:px-24">
+        <div className="max-w-md text-center lg:text-left">
+          <h1 className="text-4xl font-bold leading-tight text-charcoal sm:text-5xl">
+            Your next <span className="text-green-600">delivery.</span>
+            <br />
+            All in one place.
+          </h1>
+          <div className="mx-auto mt-5 h-1 w-14 bg-green-500 lg:mx-0" />
+          <p className="mt-6 text-sm text-stone-600">
+            Manage bookings, follow your deliveries and access your shipment documents.
+          </p>
         </div>
 
-        {/* Right form panel */}
-        <div className="flex w-full flex-col justify-center bg-white px-6 py-12 lg:w-1/2 lg:px-20">
-          <div className="mx-auto w-full max-w-sm">
-            <div className="mb-8 lg:hidden">
-              <Logo />
-            </div>
-            <h2 className="text-2xl font-bold text-navy-800">Welcome back</h2>
-            <p className="mt-1 text-sm text-navy-400">Sign in to your shipping portal.</p>
+        {/* Sign-in card */}
+        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl ring-1 ring-stone-200">
+          <h2 className="text-2xl font-bold text-charcoal">Welcome back</h2>
+          <p className="mt-1 text-sm text-stone-500">Sign in to your delivery portal.</p>
 
-            <LoginForm />
-            <div className="mt-6 border-t border-navy-100 pt-5 text-center">
-              <p className="text-sm text-navy-400">Just need to track a shipment?</p>
-              <Link href="/track" className="mt-1 inline-block text-sm font-semibold text-teal-600 hover:text-teal-700">
-                Track by tracking number →
-              </Link>
-            </div>
+          <LoginForm />
+
+          <div className="mt-6 border-t border-stone-200 pt-5">
+            <p className="text-sm text-stone-500">Just checking a delivery?</p>
+            <Link
+              href="/track"
+              className="mt-1 inline-block text-sm font-semibold text-green-700 hover:text-green-800"
+            >
+              Track by tracking number →
+            </Link>
           </div>
         </div>
-      </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="relative z-10 flex items-center justify-between px-6 pb-6 text-xs text-stone-500 sm:px-12">
+        <p>© {new Date().getFullYear()} Horizon Lida Green Ltd</p>
+        <p>Vehicle transport &amp; logistics</p>
+      </footer>
     </div>
   );
 }

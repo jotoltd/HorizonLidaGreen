@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getTokenFromRequest } from "@/lib/auth";
-import { readShipmentData } from "@/lib/storage";
+import { readShipmentData, writeShipmentData } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -88,6 +88,7 @@ export async function GET(request) {
       events: eventsByShipment[s.id] || [],
       documents: dataByShipment[s.id]?.documents || [],
       claim: dataByShipment[s.id]?.claim || null,
+      deliveryMeta: dataByShipment[s.id]?.delivery || null,
     }));
 
     return NextResponse.json({ shipments: shipmentsWithEvents });
@@ -96,25 +97,26 @@ export async function GET(request) {
 
 export async function POST(request) {
   const user = getTokenFromRequest(request);
-  if (!user || user.role !== "ADMIN") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();
-  const clientId = Number(body.clientId);
+  const isAdmin = user.role === "ADMIN";
+  const clientId = isAdmin ? Number(body.clientId) : user.id;
   const origin = (body.origin || "").toString().trim();
   const destination = (body.destination || "").toString().trim();
   const carrier = (body.carrier || "").toString().trim() || null;
   const service = (body.service || "").toString().trim() || null;
-  const pieces = Number(body.pieces) || 0;
+  const pieces = Number(body.pieces) || 1;
   const weight = (body.weight || "").toString().trim() || null;
-  const status = (body.status || "BOOKED").toString();
+  const status = isAdmin ? (body.status || "BOOKED").toString() : "BOOKED";
   const eta = body.eta ? new Date(body.eta).toISOString() : null;
   const notes = (body.notes || "").toString().trim() || null;
 
   if (!clientId || !origin || !destination) {
-    return NextResponse.json({ error: "Client, origin and destination are required." }, { status: 400 });
+    return NextResponse.json({ error: "Origin and destination are required." }, { status: 400 });
   }
 
-  const { data: client } = await supabase.from("User").select("id").eq("id", clientId).single();
+  const { data: client } = await supabase.from("User").select("id, name, company").eq("id", clientId).single();
   if (!client) return NextResponse.json({ error: "Client not found." }, { status: 404 });
 
   const trackingNumber = await genUniqueTracking();
@@ -141,11 +143,19 @@ export async function POST(request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  // Persist booking/delivery metadata if provided.
+  if (body.booking || body.delivery) {
+    const data = await readShipmentData(shipment.id);
+    if (body.booking) data.delivery = { ...(data.delivery || {}), booking: body.booking };
+    if (body.delivery) data.delivery = { ...(data.delivery || {}), ...body.delivery };
+    await writeShipmentData(shipment.id, data);
+  }
+
   // Create initial event
   await supabase.from("ShipmentEvent").insert({
     shipmentId: shipment.id,
     status,
-    description: "Shipment created",
+    description: isAdmin ? "Delivery created" : "Booking request submitted",
   });
 
   // Attach client for response

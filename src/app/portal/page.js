@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireClient, Shell } from "@/lib/shell";
 import { supabase } from "@/lib/supabase";
 import { readShipmentData } from "@/lib/storage";
@@ -45,18 +46,17 @@ export default async function PortalPage() {
     events: eventsByShipment[s.id] || [],
     documents: dataByShipment[s.id]?.documents || [],
     claim: dataByShipment[s.id]?.claim || null,
+    deliveryMeta: dataByShipment[s.id]?.delivery || null,
   }));
 
-  const stats = {
-    total: shipmentsWithEvents.length,
-    inTransit: shipmentsWithEvents.filter((s) => s.status === "IN_TRANSIT" || s.status === "OUT_FOR_DELIVERY").length,
-    delivered: shipmentsWithEvents.filter((s) => s.status === "DELIVERED").length,
-    booked: shipmentsWithEvents.filter((s) => s.status === "BOOKED").length,
-  };
-
   return (
-    <Shell user={user} title="My Shipments">
-      <ClientPortal shipments={JSON.parse(JSON.stringify(shipmentsWithEvents))} stats={stats} />
+    <Shell
+      user={user}
+      title="Your deliveries"
+      currentHref="/portal"
+      actions={<Link href="/portal/bookings?new=1" className="btn-primary">+ Request booking</Link>}
+    >
+      <ClientPortal shipments={JSON.parse(JSON.stringify(shipmentsWithEvents))} />
     </Shell>
   );
 }

@@ -23,10 +23,10 @@ export async function GET(request, { params }) {
   return NextResponse.json({ documents: data.documents, claim: data.claim });
 }
 
-// Upload a document (admin only). Multipart: file, type, title.
+// Upload a document (owner client or admin). Multipart: file, type, title.
 export async function POST(request, { params }) {
   const user = getTokenFromRequest(request);
-  if (!user || user.role !== "ADMIN") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { shipment, error, status } = await authorizeShipment(user, Number(params.id));
   if (error) return NextResponse.json({ error }, { status });

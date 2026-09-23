@@ -26,7 +26,21 @@ const prefix = (shipmentId) => `shipment-${shipmentId}`;
 const dataDir = (shipmentId) => `${prefix(shipmentId)}/${DATA_DIR}`;
 
 export function emptyShipmentData() {
-  return { documents: [], claim: null };
+  return { documents: [], claim: null, delivery: null };
+}
+
+export function emptyDeliveryMeta() {
+  return {
+    driverName: "",
+    vehicleReg: "",
+    noteToClient: "",
+    receipt: null,
+    booking: null,
+  };
+}
+
+export function getDeliveryMeta(data) {
+  return { ...emptyDeliveryMeta(), ...(data?.delivery || {}) };
 }
 
 // The manifest is stored as a new, uniquely-named object on every write.
@@ -120,9 +134,9 @@ export async function removeShipmentFiles(shipmentId) {
   await removeStorageFiles(paths);
 }
 
-export async function signedUrl(path, expiresIn = 3600) {
+export async function signedUrl(path, expiresIn = 3600, download = false) {
   await ensureBucket();
-  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, expiresIn);
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, expiresIn, download ? { download: true } : undefined);
   if (error) throw new Error(error.message);
   return data.signedUrl;
 }
