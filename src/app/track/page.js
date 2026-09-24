@@ -1,69 +1,40 @@
 "use client";
 
-import { useState } from "react";
-import { Logo } from "@/lib/logo";
-import { ShipmentResult } from "@/lib/ShipmentResult";
 import Link from "next/link";
+import TrackWidget from "@/app/TrackWidget";
 
 export default function TrackPage() {
-  const [tracking, setTracking] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [result, setResult] = useState(null);
-
-  async function handleSearch(e) {
-    e.preventDefault();
-    if (!tracking.trim()) return;
-    setLoading(true);
-    setError("");
-    setResult(null);
-    const res = await fetch(`/api/track?tracking=${encodeURIComponent(tracking.trim())}`);
-    const data = await res.json().catch(() => ({}));
-    setLoading(false);
-    if (!res.ok) {
-      setError(data.error || "Unable to find shipment.");
-      return;
-    }
-    setResult(data);
-  }
-
   return (
-    <div className="min-h-screen bg-navy-50">
-      {/* Header */}
-      <header className="border-b border-navy-100 bg-white">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 sm:px-6">
-          <Link href="/track"><Logo /></Link>
-          <Link href="/login" className="text-sm font-medium text-teal-600 hover:text-teal-700">Sign in →</Link>
-        </div>
+    <main className="login-screen">
+      <div className="login-background" />
+      <header className="login-header">
+        <Link href="/" className="brand" aria-label="Horizon Lida Green">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/assets/company-logo.jpg" alt="Horizon Lida Green Ltd" />
+        </Link>
+        <Link href="/" className="btn-pill btn-pill-ghost">
+          Sign in
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M5 12h14" />
+            <path d="m12 5 7 7-7 7" />
+          </svg>
+        </Link>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-navy-800">Track a delivery</h1>
-          <p className="mt-2 text-navy-400">Enter your delivery reference to see live status.</p>
-        </div>
-
-        <form onSubmit={handleSearch} className="mx-auto mt-8 flex max-w-lg flex-col gap-3 sm:flex-row">
-          <input
-            value={tracking}
-            onChange={(e) => setTracking(e.target.value)}
-            placeholder="e.g. HLG26092101"
-            className="input font-mono uppercase"
-            autoCapitalize="characters"
-          />
-          <button type="submit" disabled={loading} className="btn-primary whitespace-nowrap">
-            {loading ? "Searching…" : "Track"}
-          </button>
-        </form>
-
-        {error && (
-          <div className="mx-auto mt-6 max-w-lg rounded-lg bg-red-50 px-4 py-3 text-center text-sm text-red-600">
-            {error}
+      <div className="login-layout" style={{ gridTemplateColumns: "1fr", maxWidth: 860 }}>
+        <section className="login-card" style={{ justifySelf: "center", maxWidth: 860 }}>
+          <p className="eyebrow">TRACK A DELIVERY</p>
+          <h2>Where is my vehicle?</h2>
+          <p className="muted">Enter your delivery reference to see the live status.</p>
+          <div style={{ marginTop: 24 }}>
+            <TrackWidget />
           </div>
-        )}
+        </section>
+      </div>
 
-        {result && <ShipmentResult result={result} />}
-      </main>
-    </div>
+      <footer className="login-footer">
+        © Horizon Lida Green Ltd<span>Vehicle logistics, made simple.</span>
+      </footer>
+    </main>
   );
 }

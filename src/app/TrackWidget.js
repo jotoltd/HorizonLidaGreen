@@ -3,7 +3,21 @@
 import { useState } from "react";
 import { ShipmentResult } from "@/lib/ShipmentResult";
 
-export default function TrackWidget({ title = "Track a delivery", admin = false }) {
+const PinIcon = (
+  <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+    <circle cx="12" cy="10" r="3" />
+  </svg>
+);
+
+const ArrowRight = (
+  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M5 12h14" />
+    <path d="m12 5 7 7-7 7" />
+  </svg>
+);
+
+export default function TrackWidget({ admin = false }) {
   const [tracking, setTracking] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -26,23 +40,36 @@ export default function TrackWidget({ title = "Track a delivery", admin = false 
   }
 
   return (
-    <div className="card p-5 sm:p-6">
-      <h3 className="mb-1 font-semibold text-navy-800">{title}</h3>
-      <p className="mb-4 text-sm text-navy-500">Enter a delivery reference to review the latest status.</p>
-      <form onSubmit={handleSearch} className="flex flex-col gap-3 sm:flex-row">
-        <input
-          value={tracking}
-          onChange={(e) => setTracking(e.target.value)}
-          placeholder="e.g. HLG26092101"
-          className="input font-mono uppercase"
-          autoCapitalize="characters"
-        />
-        <button type="submit" disabled={loading} className="btn-primary whitespace-nowrap">
-          {loading ? "Searching…" : "Track delivery"}
-        </button>
-      </form>
-      {error && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
-      {result && <div className="mt-6"><ShipmentResult result={result} admin={admin} /></div>}
+    <div>
+      <div className="panel">
+        <form onSubmit={handleSearch} className="track-search">
+          <label className="field">
+            <span>Delivery reference</span>
+            <input
+              value={tracking}
+              onChange={(e) => setTracking(e.target.value)}
+              placeholder="e.g. HLG26092101"
+              autoCapitalize="characters"
+            />
+          </label>
+          <button type="submit" disabled={loading} className="btn-pill btn-pill-primary">
+            {loading ? "Searching…" : <>Track delivery {ArrowRight}</>}
+          </button>
+        </form>
+        {error && <p className="login-error" style={{ marginBottom: 0 }}>{error}</p>}
+      </div>
+
+      {result ? (
+        <ShipmentResult result={result} admin={admin} />
+      ) : (
+        !error && (
+          <div className="empty">
+            {PinIcon}
+            <h2>Your journey starts with a reference.</h2>
+            <p>Enter a delivery reference above.</p>
+          </div>
+        )
+      )}
     </div>
   );
 }

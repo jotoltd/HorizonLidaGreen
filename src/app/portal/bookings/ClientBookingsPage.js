@@ -6,7 +6,17 @@ import { useRouter } from "next/navigation";
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—");
 
 const steps = ["Submitted", "Reviewing", "Confirmed"];
-const stepIndex = { BOOKED: 1, ON_HOLD: 1, IN_TRANSIT: 2, OUT_FOR_DELIVERY: 2, DELIVERED: 2 };
+const stepIndex = { BOOKED: 0, ON_HOLD: 1, IN_TRANSIT: 2, OUT_FOR_DELIVERY: 2, DELIVERED: 2 };
+
+const ArrowRight = (
+  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M5 12h14" />
+    <path d="m12 5 7 7-7 7" />
+  </svg>
+);
+
+const bookingLabel = (s) =>
+  ({ BOOKED: "Submitted", ON_HOLD: "Reviewing", IN_TRANSIT: "Confirmed", OUT_FOR_DELIVERY: "Confirmed", DELIVERED: "Confirmed" }[s] || s.replace(/_/g, " "));
 
 export default function ClientBookingsPage({ bookings: initial, startNew = false }) {
   const [bookings, setBookings] = useState(initial);
@@ -23,62 +33,43 @@ export default function ClientBookingsPage({ bookings: initial, startNew = false
   }
 
   if (selected) {
-    return (
-      <BookingDetail
-        booking={selected}
-        onBack={() => setSelected(null)}
-      />
-    );
+    return <BookingDetail booking={selected} onBack={() => setSelected(null)} />;
   }
 
   return (
     <div>
-      <div className="mb-4 flex justify-end">
-        <button onClick={() => setShowForm(true)} className="btn-primary">+ Request booking</button>
-      </div>
-
-      <div className="space-y-4">
-        {bookings.length === 0 && (
-          <div className="card p-8 text-center text-sm text-navy-400">No bookings yet.</div>
-        )}
-        {bookings.map((b) => (
-          <div key={b.id} className="card p-5 sm:p-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <div className="font-mono text-xl font-bold text-navy-800">BKG{b.trackingNumber.replace(/^HLG/, "")}</div>
-                <div className="mt-1 text-navy-500">{b.origin} → {b.destination} · {b.pieces || 1} vehicle{b.pieces !== 1 ? "s" : ""}</div>
-              </div>
-              <div className="flex flex-col items-end gap-2">
-                <span className="badge bg-navy-100 text-navy-700">{b.status.replace(/_/g, " ")}</span>
-              </div>
-            </div>
-            <div className="mt-6 flex items-center gap-4">
-              {steps.map((step, i) => {
-                const current = stepIndex[b.status] ?? 0;
-                const active = i === current;
-                const done = i < current;
-                return (
-                  <div key={step} className="flex flex-1 items-center">
-                    <div className={`text-sm font-semibold ${active ? "text-navy-800" : done ? "text-navy-700" : "text-navy-400"}`}>
-                      {step}
-                    </div>
-                    {i < steps.length - 1 && (
-                      <div className={`mx-3 h-0.5 flex-1 ${done ? "bg-navy-700" : "bg-navy-200"}`} />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            {stepIndex[b.status] >= 2 && (
-              <div className="mt-5 rounded-lg bg-navy-100 px-4 py-3 text-sm font-semibold text-navy-800">
-                After confirmation: Collection instruction PDF
-              </div>
-            )}
-            <div className="mt-4 flex justify-end">
-              <button onClick={() => setSelected(b)} className="btn-primary">View / edit booking</button>
-            </div>
+      {bookings.length === 0 && (
+        <div className="panel">
+          <div className="empty">
+            <h2>No bookings yet</h2>
+            Request a booking and we will confirm your vehicle collection.
           </div>
-        ))}
+        </div>
+      )}
+
+      <div className="booking-list">
+        {bookings.map((b) => {
+          const current = stepIndex[b.status] ?? 0;
+          const declined = b.status === "CANCELLED";
+          return (
+            <div key={b.id} className="booking-card">
+              <div className="booking-top">
+                <span className="reference">BKG{b.trackingNumber.replace(/^HLG/, "")}</span>
+                <span className={declined ? "badge badge-declined" : "badge"}>{bookingLabel(b.status)}</span>
+              </div>
+              <h2>{b.origin} → {b.destination}</h2>
+              <p>
+                {b.pieces || 1} vehicle{b.pieces !== 1 ? "s" : ""} · {fmtDate(b.eta || b.createdAt)}
+              </p>
+              <div className="booking-progress">
+                {steps.map((step, i) => (
+                  <span key={step} className={declined ? "declined" : i <= current ? "done" : ""}>{step}</span>
+                ))}
+              </div>
+              <button onClick={() => setSelected(b)} className="card-link">View / edit booking {ArrowRight}</button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -112,24 +103,64 @@ function BookingDetail({ booking, onBack }) {
   }
 
   return (
-    <div className="card p-5 sm:p-6">
-      <button onClick={onBack} className="mb-4 text-sm font-medium text-teal-600 hover:text-teal-700">← Back to your bookings</button>
-      <h3 className="mb-4 font-semibold text-navy-800">View / edit booking · BKG{booking.trackingNumber.replace(/^HLG/, "")}</h3>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div><label className="label">Collection location</label><input value={form.collectionLocation} onChange={(e) => setForm({ ...form, collectionLocation: e.target.value })} className="input" /></div>
-        <div><label className="label">Delivery location</label><input value={form.deliveryLocation} onChange={(e) => setForm({ ...form, deliveryLocation: e.target.value })} className="input" /></div>
-        <div><label className="label">Number of vehicles</label><input type="number" min="1" value={form.vehicleCount} onChange={(e) => setForm({ ...form, vehicleCount: e.target.value })} className="input" /></div>
-        <div><label className="label">Notes</label><textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} className="input" /></div>
-      </div>
-      <div className="mt-5 flex justify-end gap-3">
-        <button onClick={onBack} className="btn-secondary">Cancel</button>
-        <button onClick={save} disabled={saving} className="btn-primary">{saving ? "Saving…" : "Save changes"}</button>
+    <div>
+      <button onClick={onBack} className="back-link">← Back to your bookings</button>
+      <div className="panel">
+        <div className="section-heading">
+          <h2>View / edit booking · BKG{booking.trackingNumber.replace(/^HLG/, "")}</h2>
+        </div>
+        <div className="form-grid">
+          <label className="field"><span>Collection location</span><input value={form.collectionLocation} onChange={(e) => setForm({ ...form, collectionLocation: e.target.value })} /></label>
+          <label className="field"><span>Delivery location</span><input value={form.deliveryLocation} onChange={(e) => setForm({ ...form, deliveryLocation: e.target.value })} /></label>
+          <label className="field"><span>Number of vehicles</span><input type="number" min="1" value={form.vehicleCount} onChange={(e) => setForm({ ...form, vehicleCount: e.target.value })} /></label>
+          <label className="field"><span>Notes</span><textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} /></label>
+        </div>
+        <div className="form-footer">
+          <p>Changes are reviewed by Horizon Lida Green before confirmation.</p>
+          <div style={{ display: "flex", gap: 12 }}>
+            <button onClick={onBack} className="btn-pill btn-pill-outline">Cancel</button>
+            <button onClick={save} disabled={saving} className="btn-pill btn-pill-primary">{saving ? "Saving…" : "Save changes"}</button>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function BookingForm({ onCreated, onCancel }) {
+export function BookingFormFields({ vinCount, setVinCount }) {
+  return (
+    <>
+      <div className="form-grid">
+        <label className="field"><span>Collection date</span><input name="collectionDate" type="date" /></label>
+        <label className="field"><span>Number of vehicles</span><input name="vehicleCount" type="number" min="1" defaultValue="2" /></label>
+        <label className="field"><span>Collection location</span><input name="collectionLocation" required placeholder="Newark" /></label>
+        <label className="field"><span>Delivery location</span><input name="deliveryLocation" placeholder="To be provided" /></label>
+        <label className="field wide"><span>Booking release code — one per booking</span><input name="releaseCode" placeholder="To be provided" /></label>
+      </div>
+
+      <div className="divider" />
+
+      <label className="field">
+        <span>Vehicle VINs</span>
+      </label>
+      <div className="vin-grid" style={{ marginTop: 10 }}>
+        {Array.from({ length: vinCount }).map((_, i) => (
+          <input key={i} name={`vin-${i}`} placeholder={`${i + 1}  Add VIN now or later`} />
+        ))}
+      </div>
+      <button type="button" onClick={() => setVinCount((n) => n + 1)} className="text-button" style={{ marginTop: 10 }}>+ Add another VIN</button>
+
+      <div className="divider" />
+
+      <label className="field">
+        <span>Content description / collection notes</span>
+        <textarea name="notes" rows={2} placeholder="Add notes now or later" />
+      </label>
+    </>
+  );
+}
+
+export function BookingForm({ onCreated, onCancel }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -170,40 +201,27 @@ function BookingForm({ onCreated, onCancel }) {
   }
 
   return (
-    <div className="card p-5 sm:p-6">
-      <h3 className="mb-4 font-semibold text-navy-800">Request a booking</h3>
-      <p className="mb-4 text-sm text-navy-500">Submit available details now. Complete the rest later.</p>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div><label className="label">Collection date</label><input name="collectionDate" type="date" className="input" /></div>
-          <div><label className="label">Number of vehicles</label><input name="vehicleCount" type="number" min="1" defaultValue="2" className="input" /></div>
-          <div><label className="label">Collection location</label><input name="collectionLocation" required className="input" placeholder="Newark" /></div>
-          <div><label className="label">Delivery location</label><input name="deliveryLocation" className="input" placeholder="To be provided" /></div>
-          <div className="sm:col-span-2"><label className="label">Booking release code — one per booking</label><input name="releaseCode" className="input" placeholder="To be provided" /></div>
+    <div>
+      <button onClick={onCancel} className="back-link">← Back to your bookings</button>
+      <div className="panel">
+        <div className="section-heading">
+          <h2>Request a booking</h2>
+          <span>Submit available details now — complete the rest later.</span>
         </div>
+        <form onSubmit={handleSubmit}>
+          <BookingFormFields vinCount={vinCount} setVinCount={setVinCount} />
 
-        <div>
-          <label className="label">Vehicle VINs</label>
-          <div className="space-y-2">
-            {Array.from({ length: vinCount }).map((_, i) => (
-              <input key={i} name={`vin-${i}`} className="input" placeholder={`${i + 1}  Add VIN now or later`} />
-            ))}
+          {error && <p className="login-error" style={{ marginTop: 16 }}>{error}</p>}
+
+          <div className="form-footer">
+            <p>We confirm every booking request by email.</p>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button type="button" onClick={onCancel} className="btn-pill btn-pill-outline">Cancel</button>
+              <button type="submit" disabled={loading} className="btn-pill btn-pill-primary">{loading ? "Submitting…" : "Submit request"}</button>
+            </div>
           </div>
-          <button type="button" onClick={() => setVinCount((n) => n + 1)} className="mt-2 text-xs font-medium text-teal-600 hover:text-teal-700">+ Add another VIN</button>
-        </div>
-
-        <div>
-          <label className="label">Content description / collection notes</label>
-          <textarea name="notes" rows={2} className="input" placeholder="Add notes now or later" />
-        </div>
-
-        {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
-
-        <div className="flex justify-end gap-3">
-          <button type="button" onClick={onCancel} className="btn-secondary">Cancel</button>
-          <button type="submit" disabled={loading} className="btn-primary">{loading ? "Submitting…" : "Submit request →"}</button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

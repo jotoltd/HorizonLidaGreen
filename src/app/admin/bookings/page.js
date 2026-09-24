@@ -1,11 +1,12 @@
 import { requireAdmin, Shell } from "@/lib/shell";
 import { supabase } from "@/lib/supabase";
 import { readShipmentData } from "@/lib/storage";
+import Link from "next/link";
 import BookingsPage from "./BookingsPage";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminBookingsPage() {
+export default async function AdminBookingsPage({ searchParams }) {
   const user = await requireAdmin();
 
   const { data: clients } = await supabase
@@ -33,8 +34,19 @@ export default async function AdminBookingsPage() {
   }));
 
   return (
-    <Shell user={user} title="Bookings" currentHref="/admin/bookings">
-      <BookingsPage bookings={JSON.parse(JSON.stringify(bookingsWithMeta))} clients={JSON.parse(JSON.stringify(clients || []))} />
+    <Shell
+      user={user}
+      title="Bookings"
+      eyebrow="PLAN YOUR NEXT COLLECTION"
+      subtitle="Request, review and confirm vehicle movements."
+      currentHref="/admin/bookings"
+      actions={<Link href="/admin/bookings?new=1" className="btn-pill btn-pill-primary">+ New booking</Link>}
+    >
+      <BookingsPage
+        bookings={JSON.parse(JSON.stringify(bookingsWithMeta))}
+        clients={JSON.parse(JSON.stringify(clients || []))}
+        startNew={searchParams?.new === "1"}
+      />
     </Shell>
   );
 }

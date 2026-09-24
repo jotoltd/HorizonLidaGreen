@@ -1,6 +1,7 @@
 import { requireAdmin, Shell } from "@/lib/shell";
 import { supabase } from "@/lib/supabase";
 import { readShipmentData } from "@/lib/storage";
+import Link from "next/link";
 import DeliveriesPage from "./DeliveriesPage";
 
 export const dynamic = "force-dynamic";
@@ -33,14 +34,21 @@ export default async function AdminPage() {
 
   const allShipments = shipments || [];
   const stats = {
-    totalClients: (clients || []).length,
     totalShipments: allShipments.length,
+    atCollection: allShipments.filter((s) => s.status === "BOOKED").length,
     inTransit: allShipments.filter((s) => s.status === "IN_TRANSIT" || s.status === "OUT_FOR_DELIVERY").length,
-    receiptConfirmed: allShipments.filter((s) => dataByShipment[s.id]?.delivery?.receipt).length,
+    delivered: allShipments.filter((s) => s.status === "DELIVERED").length,
   };
 
   return (
-    <Shell user={user} title="Delivery administration" currentHref="/admin">
+    <Shell
+      user={user}
+      title="Deliveries"
+      eyebrow="OPERATIONS OVERVIEW"
+      subtitle="A clear view of every vehicle journey."
+      currentHref="/admin"
+      actions={<Link href="/admin/bookings" className="btn-pill btn-pill-primary">+ Request booking</Link>}
+    >
       <DeliveriesPage
         clients={JSON.parse(JSON.stringify(clients || []))}
         shipments={JSON.parse(JSON.stringify(shipmentsWithClients))}

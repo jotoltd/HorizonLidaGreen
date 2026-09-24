@@ -2,8 +2,40 @@ import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Logo } from "@/lib/logo";
 import LoginForm from "./login/LoginForm";
+
+const ArrowRight = (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M5 12h14" />
+    <path d="m12 5 7 7-7 7" />
+  </svg>
+);
+
+const TruckIcon = (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
+    <path d="M15 18H9" />
+    <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" />
+    <circle cx="17" cy="18" r="2" />
+    <circle cx="7" cy="18" r="2" />
+  </svg>
+);
+
+const PackageIcon = (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z" />
+    <path d="M12 22V12" />
+    <polyline points="3.29 7 12 12 20.71 7" />
+    <path d="m7.5 4.27 9 5.15" />
+  </svg>
+);
+
+const ShieldCheckIcon = (
+  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+    <path d="m9 12 2 2 4-4" />
+  </svg>
+);
 
 export default async function Home() {
   const token = cookies().get("token")?.value;
@@ -12,54 +44,62 @@ export default async function Home() {
   if (user?.role === "CLIENT") redirect("/portal");
 
   return (
-    <div className="relative flex min-h-screen items-stretch bg-white">
-      <div className="relative hidden w-1/2 flex-col justify-between p-12 lg:flex">
-        <div className="absolute inset-0 z-0">
-          <div
-            className="h-full w-full bg-cover bg-center"
-            style={{
-              backgroundImage:
-                "linear-gradient(to bottom, rgba(31,61,46,0.7), rgba(31,61,46,0.4)), url('data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"100\" height=\"100\" viewBox=\"0 0 100 100\"%3E%3Cg fill-rule=\"evenodd\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.05\"%3E%3Cpath opacity=\".5\" d=\"M96 95h4v1h-4v-1zm-4-4h4v1h-4v-1zm-4-4h4v1h-4v-1zm-4-4h4v1h-4v-1zm-8-8h8v1h-8v-1zm-4-4h4v1h-4v-1zm-4-4h4v1h-4v-1zm-4-4h4v1h-4v-1zm-4-4h4v1h-4v-1zm-4-4h4v1h-4v-1zm-8-8h8v1h-8v-1zm-4-4h4v1h-4v-1zm-4-4h4v1h-4v-1zm-4-4h4v1h-4v-1zm-4-4h4v1h-4v-1zm-4-4h4v1h-4v-1z\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')",
-              backgroundColor: "#2a4f2f",
-            }}
-          />
+    <main className="login-screen">
+      <div className="login-background" />
+
+      <header className="login-header">
+        <div className="brand">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/assets/company-logo.jpg" alt="Horizon Lida Green Ltd" />
         </div>
-        <div className="relative z-10">
-          <Logo variant="dark" />
-        </div>
-        <div className="relative z-10 max-w-md text-white">
-          <h1 className="text-4xl font-bold leading-tight">
-            Your next <span className="text-white">delivery.</span>
+        <a href="mailto:junyi.liang@horizonlidagreen.com" className="btn-pill btn-pill-ghost">
+          Contact us {ArrowRight}
+        </a>
+      </header>
+
+      <div className="login-layout">
+        <section className="login-intro">
+          <p className="eyebrow">HORIZON LIDA GREEN · DELIVERY PORTAL</p>
+          <h1>
+            Your next
+            <br />
+            <b>delivery.</b>
             <br />
             All in one place.
           </h1>
-          <div className="mt-4 h-1 w-16 bg-green-400" />
-          <p className="mt-6 text-sm text-white/80">
-            Manage bookings, follow your deliveries and access your shipment documents.
+          <p className="intro-copy">
+            From collection to arrival,
+            <br />
+            keep every vehicle journey in view.
           </p>
-        </div>
-        <p className="relative z-10 text-xs text-white/60">© {new Date().getFullYear()} Horizon Lida Green Ltd</p>
-      </div>
-
-      <div className="flex w-full flex-col justify-center bg-stone-50 px-6 py-12 lg:w-1/2 lg:bg-white lg:px-20">
-        <div className="mx-auto w-full max-w-md">
-          <div className="mb-8 flex items-center justify-between lg:hidden">
-            <Logo />
-            <Link href="/contact" className="text-xs font-semibold text-green-700 hover:text-green-800">Contact us</Link>
+          <div className="login-pills">
+            <span>{TruckIcon}Vehicle transport</span>
+            <span>{PackageIcon}Shipment management</span>
           </div>
-          <h2 className="text-2xl font-bold text-charcoal">Welcome back</h2>
-          <p className="mt-1 text-sm text-stone-500">Sign in to your delivery portal.</p>
+        </section>
+
+        <section className="login-card">
+          <div className="round-icon">{ShieldCheckIcon}</div>
+          <p className="eyebrow">WELCOME BACK</p>
+          <h2>Let’s get you moving.</h2>
+          <p className="muted">Your deliveries, documents and bookings.</p>
 
           <LoginForm />
 
-          <div className="mt-6 border-t border-stone-200 pt-5">
-            <p className="text-sm text-stone-500">Just checking a delivery?</p>
-            <Link href="/track" className="mt-1 inline-block text-sm font-semibold text-green-700 hover:text-green-800">
-              Track by tracking number →
-            </Link>
+          <p className="preview-note">
+            Sign in with the email and password provided by Horizon Lida Green.
+          </p>
+
+          <div className="login-bottom">
+            <span>Just checking a journey?</span>
+            <Link href="/track">Track delivery {ArrowRight}</Link>
           </div>
-        </div>
+        </section>
       </div>
-    </div>
+
+      <footer className="login-footer">
+        © Horizon Lida Green Ltd<span>Vehicle logistics, made simple.</span>
+      </footer>
+    </main>
   );
 }
