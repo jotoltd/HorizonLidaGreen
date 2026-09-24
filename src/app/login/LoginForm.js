@@ -3,6 +3,29 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+const EyeIcon = (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const EyeOffIcon = (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" />
+    <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" />
+    <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" />
+    <path d="m2 2 20 20" />
+  </svg>
+);
+
+const ArrowRight = (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M5 12h14" />
+    <path d="m12 5 7 7-7 7" />
+  </svg>
+);
+
 export default function LoginForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -29,41 +52,46 @@ export default function LoginForm() {
   }
 
   return (
-    <>
-      <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-        <div>
-          <label className="label" htmlFor="email">Email address</label>
-          <input id="email" name="email" type="email" required autoComplete="email" className="input" placeholder="you@company.com" />
+    <form onSubmit={handleSubmit}>
+      <label className="field">
+        <span>Email address</span>
+        <input id="email" name="email" type="email" required autoComplete="email" placeholder="you@company.com" />
+      </label>
+
+      <label className="field">
+        <span>Password</span>
+        <div className="password-field">
+          <input
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            required
+            autoComplete="current-password"
+            placeholder="Enter your password"
+          />
+          <button type="button" aria-label="Show password" onClick={() => setShowPassword((s) => !s)}>
+            {showPassword ? EyeOffIcon : EyeIcon}
+          </button>
         </div>
-        <div>
-          <label className="label" htmlFor="password">Password</label>
-          <div className="relative">
-            <input
-              id="password"
-              name="password"
-              type={showPassword ? "text" : "password"}
-              required
-              autoComplete="current-password"
-              className="input pr-16"
-              placeholder="Enter your password"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((s) => !s)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-green-700 hover:text-green-800"
-            >
-              {showPassword ? "Hide" : "Show"}
-            </button>
-          </div>
-        </div>
-        <div className="flex justify-end">
-          <button type="button" className="text-sm font-medium text-green-700 hover:text-green-800">Forgot password?</button>
-        </div>
-        {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
-        <button type="submit" disabled={loading} className="btn-primary w-full">
-          {loading ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
-    </>
+      </label>
+
+      <button className="text-button forgot" type="button">
+        Forgot password?
+      </button>
+
+      <label className="field">
+        <span>Explore the design as</span>
+        <select defaultValue="Client">
+          <option>Client</option>
+          <option>Administrator</option>
+        </select>
+      </label>
+
+      {error && <p className="login-error">{error}</p>}
+
+      <button type="submit" disabled={loading} className="btn-pill btn-pill-primary login-submit">
+        {loading ? "Signing in…" : "Sign in"} {ArrowRight}
+      </button>
+    </form>
   );
 }

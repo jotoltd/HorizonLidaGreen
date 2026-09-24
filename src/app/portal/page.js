@@ -52,9 +52,11 @@ export default async function PortalPage() {
   return (
     <Shell
       user={user}
-      title="Your deliveries"
+      title="Deliveries"
+      eyebrow="YOUR WORKSPACE"
+      subtitle="A clear view of every vehicle journey."
       currentHref="/portal"
-      actions={<Link href="/portal/bookings?new=1" className="btn-primary">+ Request booking</Link>}
+      actions={<Link href="/portal/bookings?new=1" className="btn-pill btn-pill-primary">+ Request booking</Link>}
     >
       <ClientPortal shipments={JSON.parse(JSON.stringify(shipmentsWithEvents))} />
     </Shell>

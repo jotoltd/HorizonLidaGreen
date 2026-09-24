@@ -2,21 +2,20 @@
 
 export default function Modal({ children, title, onClose }) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-navy-900/50 p-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
         {title && (
-          <div className="flex items-center justify-between border-b border-navy-100 px-6 py-4">
-            <h3 className="text-lg font-bold text-navy-800">{title}</h3>
-            <button onClick={onClose} className="text-navy-400 hover:text-navy-700">✕</button>
+          <div className="modal-head">
+            <h3>{title}</h3>
+            <button onClick={onClose} className="icon-button" aria-label="Close">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            </button>
           </div>
         )}
-        <div className="p-6">{children}</div>
+        {children}
       </div>
     </div>
   );

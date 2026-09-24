@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminContactPage() {
   const user = await requireAdmin();
   return (
-    <Shell user={user} title="Contact" currentHref="/admin/contact">
+    <Shell user={user} title="Contact" eyebrow="HERE TO HELP" subtitle="Get in touch with Horizon Lida Green." currentHref="/admin/contact">
       <ContactCard />
     </Shell>
   );

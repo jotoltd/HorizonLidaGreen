@@ -2,10 +2,18 @@
 
 import { useState } from "react";
 
-export default function ClientsPage({ clients: initial }) {
+const SearchIcon = (
+  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="11" cy="11" r="8" />
+    <path d="m21 21-4.3-4.3" />
+  </svg>
+);
+
+export default function ClientsPage({ clients: initial, stats = {}, startNew = false }) {
   const [clients, setClients] = useState(initial);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(startNew);
   const [invite, setInvite] = useState(null);
+  const [search, setSearch] = useState("");
 
   if (showForm) {
     return (
@@ -21,32 +29,64 @@ export default function ClientsPage({ clients: initial }) {
   }
 
   if (invite) {
-    return (
-      <InvitationPreview client={invite} onBack={() => setInvite(null)} />
-    );
+    return <InvitationPreview client={invite} onBack={() => setInvite(null)} />;
   }
+
+  const q = search.toLowerCase();
+  const filtered = clients.filter(
+    (c) => !q || c.name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.company?.toLowerCase().includes(q)
+  );
 
   return (
     <div>
-      <div className="mb-4 flex justify-end">
-        <button onClick={() => setShowForm(true)} className="btn-primary">+ Create client</button>
+      <div className="panel">
+        <div className="search client-search">
+          {SearchIcon}
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search company or contact email" />
+        </div>
+
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Company / contact</th>
+                <th>Current</th>
+                <th>Past</th>
+                <th>Account</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((c) => (
+                <tr key={c.id}>
+                  <td>
+                    <strong>{c.company || c.name}</strong>
+                    <small>{c.email}</small>
+                  </td>
+                  <td>{stats[c.id]?.current || 0}</td>
+                  <td>{stats[c.id]?.past || 0}</td>
+                  <td>
+                    <span className="badge">Active</span>
+                  </td>
+                  <td>
+                    <button onClick={() => setInvite({ ...c })} className="btn-pill btn-pill-outline btn-pill-sm">
+                      View profile
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: "center", color: "#8a9781" }}>No clients found.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div className="space-y-4">
-        {clients.length === 0 && <div className="card p-8 text-center text-sm text-navy-400">No clients yet.</div>}
-        {clients.map((c) => (
-          <div key={c.id} className="card p-5 sm:p-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <div className="text-xl font-bold text-navy-800">{c.name}</div>
-                <div className="mt-1 text-navy-500">{c.email}</div>
-              </div>
-              <div className="flex flex-col items-end gap-2">
-                <span className="badge bg-navy-100 text-navy-700">Active</span>
-                <button onClick={() => setInvite({ ...c })} className="btn-primary">Open profile</button>
-              </div>
-            </div>
-          </div>
-        ))}
+
+      <div className="help-strip">
+        Clients sign in with their email and the password you set or generate for them.
       </div>
     </div>
   );
@@ -70,64 +110,66 @@ function CreateClientForm({ onCreated, onCancel }) {
   }
 
   return (
-    <div className="card max-w-2xl p-6 sm:p-8">
-      <h3 className="mb-6 font-semibold text-navy-800">Create client profile</h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="label">Client company name</label>
-          <input name="name" required className="input" placeholder="Enter company name" />
+    <div>
+      <button onClick={onCancel} className="back-link">← Back to clients</button>
+      <div className="panel">
+        <div className="section-heading">
+          <h2>Create client profile</h2>
         </div>
-        <div>
-          <label className="label">Companies House number</label>
-          <input name="companyNumber" className="input" placeholder="Enter registration number" />
-        </div>
-        <div>
-          <label className="label">Company address</label>
-          <input name="address" className="input" placeholder="Street, town / city, postcode" />
-        </div>
-        <div>
-          <label className="label">Contact email / login email</label>
-          <input name="email" type="email" required className="input" placeholder="name@company.com" />
-        </div>
-        <div>
-          <label className="label">Phone number</label>
-          <input name="phone" className="input" placeholder="Enter phone number" />
-        </div>
-        <div>
-          <label className="label">Password</label>
-          <input name="password" className="input" placeholder="Leave blank to auto-generate" />
-          <p className="mt-1 text-xs text-navy-400">If left blank, a secure password will be generated and shown to you.</p>
-        </div>
-        {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
-        <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onCancel} className="btn-secondary">Cancel</button>
-          <button type="submit" disabled={loading} className="btn-primary">{loading ? "Saving…" : "Save profile"}</button>
-        </div>
-      </form>
+        <form onSubmit={handleSubmit}>
+          <div className="form-grid">
+            <label className="field"><span>Client company name</span><input name="name" required placeholder="Enter company name" /></label>
+            <label className="field"><span>Companies House number</span><input name="companyNumber" placeholder="Enter registration number" /></label>
+            <label className="field wide"><span>Company address</span><input name="address" placeholder="Street, town / city, postcode" /></label>
+            <label className="field"><span>Contact email / login email</span><input name="email" type="email" required placeholder="name@company.com" /></label>
+            <label className="field"><span>Phone number</span><input name="phone" placeholder="Enter phone number" /></label>
+            <label className="field wide">
+              <span>Password</span>
+              <input name="password" placeholder="Leave blank to auto-generate" />
+            </label>
+          </div>
+          {error && <p className="login-error" style={{ marginTop: 16 }}>{error}</p>}
+          <div className="form-footer">
+            <p>If left blank, a secure password is generated and shown once.</p>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button type="button" onClick={onCancel} className="btn-pill btn-pill-outline">Cancel</button>
+              <button type="submit" disabled={loading} className="btn-pill btn-pill-primary">{loading ? "Saving…" : "Save profile"}</button>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
 
 function InvitationPreview({ client, onBack }) {
   return (
-    <div className="card max-w-2xl p-6 sm:p-8">
-      <h3 className="mb-4 font-semibold text-navy-800">Login invitation preview</h3>
-      <div className="rounded-lg border border-navy-100 bg-navy-50/40 p-4 text-sm text-navy-700">
-        <div><span className="font-semibold">To:</span> {client.email}</div>
-        <div><span className="font-semibold">Company:</span> {client.name}</div>
-        <p className="mt-3">Welcome to the Horizon Lida Green delivery portal.</p>
-        <div className="mt-3">
-          <span className="font-semibold">Login email:</span> {client.email}
+    <div>
+      <button onClick={onBack} className="back-link">← Back to clients</button>
+      <div className="panel">
+        <div className="section-heading">
+          <h2>Login invitation preview</h2>
         </div>
-        {client.password && (
-          <div className="mt-2 rounded bg-white p-2 font-mono text-xs text-navy-800">
-            Temporary password: {client.password}
+        <div className="invitation-text">
+          <p><strong>To:</strong> {client.email}<br /><strong>Company:</strong> {client.name}</p>
+          <p>Welcome to the Horizon Lida Green delivery portal.</p>
+          <p>
+            <strong>Login email:</strong> {client.email}
+            {client.password && (
+              <>
+                <br />
+                <strong>Temporary password:</strong> <code>{client.password}</code>
+              </>
+            )}
+          </p>
+        </div>
+        <div className="form-footer">
+          <p>Share these credentials with your client securely.</p>
+          <div style={{ display: "flex", gap: 12 }}>
+            <button onClick={onBack} className="btn-pill btn-pill-outline">Back</button>
+            <button onClick={() => alert("Invitation sent (demo).")} className="btn-pill btn-pill-primary">Send login invitation</button>
           </div>
-        )}
-      </div>
-      <div className="mt-6 flex justify-end gap-3">
-        <button onClick={onBack} className="btn-secondary">Back</button>
-        <button onClick={() => alert("Invitation sent (demo).")} className="btn-primary">Send login invitation</button>
+        </div>
       </div>
     </div>
   );
