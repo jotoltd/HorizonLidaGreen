@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getTokenFromRequest, hashPassword } from "@/lib/auth";
+import { notifyNewClient } from "@/lib/email";
+import { sendSms } from "@/lib/sms";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +61,15 @@ export async function POST(request) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await notifyNewClient({ client, password });
+
+  if (client.phone) {
+    await sendSms({
+      to: client.phone,
+      body: `Welcome to Horizon Lida Green. Your portal login is ${client.email} and password is ${password}. Sign in: ${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}`,
+    });
+  }
 
   return NextResponse.json({ client, password });
 }

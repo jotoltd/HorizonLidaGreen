@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—");
@@ -22,12 +22,15 @@ export default function ClientBookingsPage({ bookings: initial, startNew = false
   const [bookings, setBookings] = useState(initial);
   const [showForm, setShowForm] = useState(startNew);
   const [selected, setSelected] = useState(null);
+  const router = useRouter();
+
+  useEffect(() => { setShowForm(startNew); }, [startNew]);
 
   if (showForm) {
     return (
       <BookingForm
-        onCreated={(b) => { setBookings([b, ...bookings]); setShowForm(false); }}
-        onCancel={() => setShowForm(false)}
+        onCreated={(b) => { setBookings([b, ...bookings]); setShowForm(false); router.replace("/portal/bookings"); }}
+        onCancel={() => { setShowForm(false); router.replace("/portal/bookings"); }}
       />
     );
   }

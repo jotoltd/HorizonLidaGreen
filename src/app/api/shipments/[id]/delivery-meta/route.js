@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getTokenFromRequest } from "@/lib/auth";
 import { authorizeShipment, readShipmentData, writeShipmentData, logEvent, emptyDeliveryMeta } from "@/lib/storage";
+import { notifyReceiptConfirmed } from "@/lib/email";
+import { smsNotifyReceiptConfirmed } from "@/lib/sms";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +22,7 @@ export async function PATCH(request, { params }) {
   if (body.vehicleReg !== undefined) current.vehicleReg = body.vehicleReg;
   if (body.noteToClient !== undefined) current.noteToClient = body.noteToClient;
 
+  const hadReceipt = !!current.receipt;
   if (body.receipt) {
     const receipt = {
       status: body.receipt.status || "RECEIVED",
@@ -47,9 +50,15 @@ export async function PATCH(request, { params }) {
   // Return fresh shipment with client details.
   const { data: client } = await supabase
     .from("User")
-    .select("name, company")
+    .select("name, email, company")
     .eq("id", shipment.clientId)
     .single();
+
+  // Notify admin when the client confirms a receipt for the first time
+  if (body.receipt && user.role === "CLIENT" && !hadReceipt) {
+    await notifyReceiptConfirmed({ shipment, receipt: current.receipt, adminEmail: process.env.ADMIN_EMAIL });
+    await smsNotifyReceiptConfirmed({ shipment, receipt: current.receipt });
+  }
 
   return NextResponse.json({
     shipment: {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 const SearchIcon = (
   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -14,6 +15,9 @@ export default function ClientsPage({ clients: initial, stats = {}, startNew = f
   const [showForm, setShowForm] = useState(startNew);
   const [invite, setInvite] = useState(null);
   const [search, setSearch] = useState("");
+  const router = useRouter();
+
+  useEffect(() => { setShowForm(startNew); }, [startNew]);
 
   if (showForm) {
     return (
@@ -21,9 +25,10 @@ export default function ClientsPage({ clients: initial, stats = {}, startNew = f
         onCreated={(c, pwd) => {
           setClients([c, ...clients]);
           setShowForm(false);
+          router.replace("/admin/clients");
           setInvite({ ...c, password: pwd });
         }}
-        onCancel={() => setShowForm(false)}
+        onCancel={() => { setShowForm(false); router.replace("/admin/clients"); }}
       />
     );
   }

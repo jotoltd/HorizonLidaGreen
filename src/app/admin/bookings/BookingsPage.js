@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { BookingFormFields } from "../../portal/bookings/ClientBookingsPage";
 
@@ -26,6 +26,8 @@ export default function BookingsPage({ bookings: initial, clients, startNew = fa
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
+  useEffect(() => { setShowForm(startNew); }, [startNew]);
+
   const bookingMeta = (b) => b.deliveryMeta?.booking || {};
 
   async function updateBooking(status) {
@@ -48,8 +50,8 @@ export default function BookingsPage({ bookings: initial, clients, startNew = fa
     return (
       <NewBookingForm
         clients={clients}
-        onCreated={() => { setShowForm(false); router.refresh(); }}
-        onCancel={() => setShowForm(false)}
+        onCreated={() => { setShowForm(false); router.replace("/admin/bookings"); router.refresh(); }}
+        onCancel={() => { setShowForm(false); router.replace("/admin/bookings"); }}
       />
     );
   }

@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getTokenFromRequest } from "@/lib/auth";
 import { removeShipmentFiles } from "@/lib/storage";
+import { notifyStatusUpdate, notifyBookingConfirmed } from "@/lib/email";
+import { smsNotifyStatusUpdate, smsNotifyBookingConfirmed } from "@/lib/sms";
+import { getUserPreferences } from "@/lib/preferences";
 
 export const dynamic = "force-dynamic";
 
@@ -47,13 +50,15 @@ export async function PATCH(request, { params }) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  let event = null;
   if (statusChanged) {
-    await supabase.from("ShipmentEvent").insert({
+    event = {
       shipmentId: id,
       status: body.status,
       location: body.location || null,
       description: body.description || `Status updated to ${body.status.replace(/_/g, " ")}`,
-    });
+    };
+    await supabase.from("ShipmentEvent").insert(event);
   } else if (!isAdmin && Object.keys(data).length > 1) {
     // Log client booking edits so both parties see the change in history.
     await supabase.from("ShipmentEvent").insert({
@@ -66,10 +71,25 @@ export async function PATCH(request, { params }) {
   // Attach client name
   const { data: client } = await supabase
     .from("User")
-    .select("name, company")
+    .select("name, email, company, phone")
     .eq("id", shipment.clientId)
     .single();
+  if (client) client.preferences = await getUserPreferences(shipment.clientId);
   shipment.client = client || null;
+
+  // Notify client of status change
+  if (isAdmin && statusChanged && client?.email) {
+    const confirmedStatuses = ["IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED"];
+    const wasBooking = currentStatus === "BOOKED" || currentStatus === "ON_HOLD";
+    const isConfirmed = confirmedStatuses.includes(body.status);
+    if (wasBooking && isConfirmed) {
+      await notifyBookingConfirmed({ shipment, client });
+      await smsNotifyBookingConfirmed({ shipment, client });
+    } else {
+      await notifyStatusUpdate({ shipment, client, previousStatus: currentStatus, event });
+      await smsNotifyStatusUpdate({ shipment, client, event });
+    }
+  }
 
   return NextResponse.json({ shipment });
 }

@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getTokenFromRequest } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 import { CLAIM_STATUSES, CLAIM_DOC_STATUSES, CLAIM_STATUS_LABELS } from "@/lib/docs";
+import { notifyClaimStatus } from "@/lib/email";
+import { smsNotifyClaimStatus } from "@/lib/sms";
+import { getUserPreferences } from "@/lib/preferences";
 import {
   authorizeShipment,
   readShipmentData,
@@ -105,6 +109,22 @@ export async function PATCH(request, { params }) {
 
   if (statusChanged) {
     await logEvent(shipment.id, `Insurance claim status: ${CLAIM_STATUS_LABELS[claim.status] || claim.status}`, "UPDATE");
+  }
+
+  // Notify client of claim status change
+  if (statusChanged) {
+    const { data: client } = await supabase
+      .from("User")
+      .select("name, email, phone")
+      .eq("id", shipment.clientId)
+      .single();
+    if (client) client.preferences = await getUserPreferences(shipment.clientId);
+    if (client?.email) {
+      await notifyClaimStatus({ shipment, claim, client });
+    }
+    if (client?.phone) {
+      await smsNotifyClaimStatus({ shipment, claim, client });
+    }
   }
 
   return NextResponse.json({ claim });

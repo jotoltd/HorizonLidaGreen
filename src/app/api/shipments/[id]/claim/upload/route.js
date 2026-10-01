@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getTokenFromRequest } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 import { MAX_UPLOAD_SIZE } from "@/lib/docs";
+import { notifyClaimDocumentSubmitted } from "@/lib/email";
+import { smsNotifyClaimDocumentSubmitted } from "@/lib/sms";
 import {
   authorizeShipment,
   readShipmentData,
@@ -49,6 +52,20 @@ export async function POST(request, { params }) {
     data.claim.updatedAt = doc.updatedAt;
     await writeShipmentData(shipment.id, data);
     await logEvent(shipment.id, `Claim document submitted: ${doc.label}`, "UPDATE");
+
+    // Notify admin when client uploads a claim document
+    if (user.role === "CLIENT") {
+      const { data: client } = await supabase
+        .from("User")
+        .select("name, email")
+        .eq("id", shipment.clientId)
+        .single();
+      if (client?.email) {
+        await notifyClaimDocumentSubmitted({ shipment, documentLabel: doc.label, client });
+      }
+      await smsNotifyClaimDocumentSubmitted({ shipment, documentLabel: doc.label });
+    }
+
     return NextResponse.json({ claim: data.claim });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });

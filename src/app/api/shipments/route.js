@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getTokenFromRequest } from "@/lib/auth";
 import { readShipmentData, writeShipmentData } from "@/lib/storage";
+import { notifyBookingSubmitted, notifyAdminNewBooking } from "@/lib/email";
+import { smsNotifyBookingSubmitted } from "@/lib/sms";
+import { getUserPreferences } from "@/lib/preferences";
 
 export const dynamic = "force-dynamic";
 
@@ -116,8 +119,9 @@ export async function POST(request) {
     return NextResponse.json({ error: "Origin and destination are required." }, { status: 400 });
   }
 
-  const { data: client } = await supabase.from("User").select("id, name, company").eq("id", clientId).single();
+  const { data: client } = await supabase.from("User").select("id, name, email, company, phone").eq("id", clientId).single();
   if (!client) return NextResponse.json({ error: "Client not found." }, { status: 404 });
+  client.preferences = await getUserPreferences(clientId);
 
   const trackingNumber = await genUniqueTracking();
   const now = new Date().toISOString();
@@ -160,6 +164,21 @@ export async function POST(request) {
 
   // Attach client for response
   shipment.client = { name: client.name || null, company: client.company || null };
+
+  // Notify by email
+  if (client.email) {
+    if (isAdmin) {
+      await notifyBookingSubmitted({ shipment, client });
+    } else {
+      await Promise.all([
+        notifyBookingSubmitted({ shipment, client }),
+        notifyAdminNewBooking({ shipment, client }),
+      ]);
+    }
+  }
+
+  // Notify by SMS
+  await smsNotifyBookingSubmitted({ shipment, client });
 
   return NextResponse.json({ shipment });
 }
