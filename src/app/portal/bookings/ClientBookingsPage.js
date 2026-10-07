@@ -18,7 +18,7 @@ const ArrowRight = (
 const bookingLabel = (s) =>
   ({ BOOKED: "Submitted", ON_HOLD: "Reviewing", IN_TRANSIT: "Confirmed", OUT_FOR_DELIVERY: "Confirmed", DELIVERED: "Confirmed" }[s] || s.replace(/_/g, " "));
 
-export default function ClientBookingsPage({ bookings: initial, startNew = false }) {
+export default function ClientBookingsPage({ bookings: initial, addresses = [], startNew = false }) {
   const [bookings, setBookings] = useState(initial);
   const [showForm, setShowForm] = useState(startNew);
   const [selected, setSelected] = useState(null);
@@ -29,6 +29,7 @@ export default function ClientBookingsPage({ bookings: initial, startNew = false
   if (showForm) {
     return (
       <BookingForm
+        addresses={addresses}
         onCreated={(b) => { setBookings([b, ...bookings]); setShowForm(false); router.replace("/portal/bookings"); }}
         onCancel={() => { setShowForm(false); router.replace("/portal/bookings"); }}
       />
@@ -130,14 +131,17 @@ function BookingDetail({ booking, onBack }) {
   );
 }
 
-export function BookingFormFields({ vinCount, setVinCount }) {
+export function BookingFormFields({ vinCount, setVinCount, addresses = [] }) {
   return (
     <>
       <div className="form-grid">
         <label className="field"><span>Collection date</span><input name="collectionDate" type="date" /></label>
         <label className="field"><span>Number of vehicles</span><input name="vehicleCount" type="number" min="1" defaultValue="2" /></label>
-        <label className="field"><span>Collection location</span><input name="collectionLocation" required placeholder="Newark" /></label>
-        <label className="field"><span>Delivery location</span><input name="deliveryLocation" placeholder="To be provided" /></label>
+        <label className="field"><span>Collection location</span><input name="collectionLocation" list="booking-addresses" required placeholder="Select or enter an address" /></label>
+        <label className="field"><span>Delivery location</span><input name="deliveryLocation" list="booking-addresses" placeholder="Select or enter an address" /></label>
+        <datalist id="booking-addresses">
+          {addresses.map((address) => <option key={address} value={address} />)}
+        </datalist>
         <label className="field wide"><span>Booking release code — one per booking</span><input name="releaseCode" placeholder="To be provided" /></label>
       </div>
 
@@ -163,7 +167,7 @@ export function BookingFormFields({ vinCount, setVinCount }) {
   );
 }
 
-export function BookingForm({ onCreated, onCancel }) {
+export function BookingForm({ addresses, onCreated, onCancel }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -212,7 +216,7 @@ export function BookingForm({ onCreated, onCancel }) {
           <span>Submit available details now — complete the rest later.</span>
         </div>
         <form onSubmit={handleSubmit}>
-          <BookingFormFields vinCount={vinCount} setVinCount={setVinCount} />
+          <BookingFormFields vinCount={vinCount} setVinCount={setVinCount} addresses={addresses} />
 
           {error && <p className="login-error" style={{ marginTop: 16 }}>{error}</p>}
 

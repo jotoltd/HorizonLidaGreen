@@ -198,13 +198,13 @@ select:disabled {
   pointer-events: none;
 }
 .brand-large {
-  width: 331px;
-  height: 79px;
+  width: 430px;
+  height: 103px;
 }
 .brand-large img {
-  width: 424px;
-  top: -163px;
-  left: -48px;
+  width: 551px;
+  top: -212px;
+  left: -62px;
 }
 
 .brand-app {

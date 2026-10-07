@@ -16,6 +16,7 @@ export default async function PortalBookingsPage({ searchParams }) {
     .order("createdAt", { ascending: false });
 
   const bookings = (shipments || []).filter((s) => s.status === "BOOKED" || s.status === "ON_HOLD");
+  const addresses = [...new Set((shipments || []).flatMap((s) => [s.origin, s.destination]).filter((address) => address && address !== "To be provided"))];
   const ids = bookings.map((s) => s.id);
   const dataByShipment = {};
   await Promise.all(ids.map(async (id) => { dataByShipment[id] = await readShipmentData(id); }));
@@ -34,7 +35,7 @@ export default async function PortalBookingsPage({ searchParams }) {
       currentHref="/portal/bookings"
       actions={<Link href="/portal/bookings?new=1" className="btn-pill btn-pill-primary">+ New booking</Link>}
     >
-      <ClientBookingsPage bookings={JSON.parse(JSON.stringify(bookingsWithMeta))} startNew={searchParams?.new === "1"} />
+      <ClientBookingsPage bookings={JSON.parse(JSON.stringify(bookingsWithMeta))} addresses={addresses} startNew={searchParams?.new === "1"} />
     </Shell>
   );
 }

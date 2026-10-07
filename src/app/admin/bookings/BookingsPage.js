@@ -19,7 +19,7 @@ const ArrowRight = (
 const bookingLabel = (s) =>
   ({ BOOKED: "Submitted", ON_HOLD: "Reviewing", IN_TRANSIT: "Confirmed", OUT_FOR_DELIVERY: "Confirmed", DELIVERED: "Confirmed" }[s] || s.replace(/_/g, " "));
 
-export default function BookingsPage({ bookings: initial, clients, startNew = false }) {
+export default function BookingsPage({ bookings: initial, clients, addressesByClient, startNew = false }) {
   const [bookings, setBookings] = useState(initial);
   const [showForm, setShowForm] = useState(startNew);
   const [selected, setSelected] = useState(null);
@@ -50,6 +50,7 @@ export default function BookingsPage({ bookings: initial, clients, startNew = fa
     return (
       <NewBookingForm
         clients={clients}
+        addressesByClient={addressesByClient}
         onCreated={() => { setShowForm(false); router.replace("/admin/bookings"); router.refresh(); }}
         onCancel={() => { setShowForm(false); router.replace("/admin/bookings"); }}
       />
@@ -136,10 +137,11 @@ export default function BookingsPage({ bookings: initial, clients, startNew = fa
   );
 }
 
-function NewBookingForm({ clients, onCreated, onCancel }) {
+function NewBookingForm({ clients, addressesByClient, onCreated, onCancel }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [vinCount, setVinCount] = useState(2);
+  const [clientId, setClientId] = useState("");
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -187,7 +189,7 @@ function NewBookingForm({ clients, onCreated, onCancel }) {
           <div className="form-grid">
             <label className="field wide">
               <span>Client</span>
-              <select name="clientId" required defaultValue="">
+              <select name="clientId" required value={clientId} onChange={(e) => setClientId(e.target.value)}>
                 <option value="" disabled>Select a client…</option>
                 {clients.map((c) => (
                   <option key={c.id} value={c.id}>{c.company || c.name || c.email}</option>
@@ -195,7 +197,7 @@ function NewBookingForm({ clients, onCreated, onCancel }) {
               </select>
             </label>
           </div>
-          <BookingFormFields vinCount={vinCount} setVinCount={setVinCount} />
+          <BookingFormFields vinCount={vinCount} setVinCount={setVinCount} addresses={addressesByClient[clientId] || []} />
 
           {error && <p className="login-error" style={{ marginTop: 16 }}>{error}</p>}
 

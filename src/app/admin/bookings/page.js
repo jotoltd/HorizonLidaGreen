@@ -20,7 +20,11 @@ export default async function AdminBookingsPage({ searchParams }) {
     .order("createdAt", { ascending: false });
 
   const clientMap = {};
-  (clients || []).forEach((c) => { clientMap[c.id] = c; });
+  const addressesByClient = {};
+  (clients || []).forEach((c) => { clientMap[c.id] = c; addressesByClient[c.id] = []; });
+  (shipments || []).forEach((s) => {
+    addressesByClient[s.clientId] = [...new Set([...(addressesByClient[s.clientId] || []), s.origin, s.destination].filter((address) => address && address !== "To be provided"))];
+  });
 
   const bookings = (shipments || []).filter((s) => s.status === "BOOKED" || s.status === "ON_HOLD");
   const ids = bookings.map((s) => s.id);
@@ -45,6 +49,7 @@ export default async function AdminBookingsPage({ searchParams }) {
       <BookingsPage
         bookings={JSON.parse(JSON.stringify(bookingsWithMeta))}
         clients={JSON.parse(JSON.stringify(clients || []))}
+        addressesByClient={addressesByClient}
         startNew={searchParams?.new === "1"}
       />
     </Shell>

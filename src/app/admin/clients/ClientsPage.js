@@ -15,6 +15,7 @@ export default function ClientsPage({ clients: initial, stats = {}, startNew = f
   const [showForm, setShowForm] = useState(startNew);
   const [invite, setInvite] = useState(null);
   const [search, setSearch] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const router = useRouter();
 
   useEffect(() => { setShowForm(startNew); }, [startNew]);
@@ -33,8 +34,20 @@ export default function ClientsPage({ clients: initial, stats = {}, startNew = f
     );
   }
 
+  async function deleteClient(client) {
+    if (!window.confirm(`Delete ${client.company || client.name}? This will also delete all of their deliveries and bookings.`)) return;
+    setDeleting(true);
+    const res = await fetch(`/api/clients/${client.id}`, { method: "DELETE" });
+    const data = await res.json().catch(() => ({}));
+    setDeleting(false);
+    if (!res.ok) { alert(data.error || "Failed to delete client"); return; }
+    setClients((current) => current.filter((c) => c.id !== client.id));
+    setInvite(null);
+    router.refresh();
+  }
+
   if (invite) {
-    return <InvitationPreview client={invite} onBack={() => setInvite(null)} />;
+    return <InvitationPreview client={invite} deleting={deleting} onDelete={() => deleteClient(invite)} onBack={() => setInvite(null)} />;
   }
 
   const q = search.toLowerCase();
@@ -147,13 +160,13 @@ function CreateClientForm({ onCreated, onCancel }) {
   );
 }
 
-function InvitationPreview({ client, onBack }) {
+function InvitationPreview({ client, deleting, onDelete, onBack }) {
   return (
     <div>
       <button onClick={onBack} className="back-link">← Back to clients</button>
       <div className="panel">
         <div className="section-heading">
-          <h2>Login invitation preview</h2>
+          <h2>Client profile</h2>
         </div>
         <div className="invitation-text">
           <p><strong>To:</strong> {client.email}<br /><strong>Company:</strong> {client.name}</p>
@@ -171,6 +184,7 @@ function InvitationPreview({ client, onBack }) {
         <div className="form-footer">
           <p>Share these credentials with your client securely.</p>
           <div style={{ display: "flex", gap: 12 }}>
+            <button onClick={onDelete} disabled={deleting} className="btn-pill btn-pill-outline" style={{ color: "#b44444", borderColor: "#e0c4c4" }}>{deleting ? "Deleting…" : "Delete profile"}</button>
             <button onClick={onBack} className="btn-pill btn-pill-outline">Back</button>
             <button onClick={() => alert("Invitation sent (demo).")} className="btn-pill btn-pill-primary">Send login invitation</button>
           </div>

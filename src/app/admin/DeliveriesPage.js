@@ -155,6 +155,7 @@ export default function DeliveriesPage({ clients: initialClients, shipments: ini
                 <th>Delivery / Client</th>
                 <th>Status</th>
                 <th>Collection</th>
+                <th>Delivery date</th>
                 <th>Documents</th>
                 <th>Receipt</th>
               </tr>
@@ -171,7 +172,7 @@ export default function DeliveriesPage({ clients: initialClients, shipments: ini
               ))}
               {paged.length === 0 && (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: "center", color: "#8a9781" }}>No deliveries found.</td>
+                  <td colSpan={6} style={{ textAlign: "center", color: "#8a9781" }}>No deliveries found.</td>
                 </tr>
               )}
             </tbody>
@@ -236,6 +237,7 @@ function DeliveryRow({ shipment, onClick, onOpenDocs, onOpenReceipt }) {
         {fmtDate(shipment.createdAt)}
         <small>{shipment.pieces || 1} vehicle{shipment.pieces !== 1 ? "s" : ""}</small>
       </td>
+      <td>{fmtDate(receipt?.confirmedAt)}</td>
       <td>
         <button
           className="btn-pill btn-pill-outline btn-pill-sm"
