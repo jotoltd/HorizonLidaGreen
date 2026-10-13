@@ -19,8 +19,7 @@ export async function GET(request) {
 
   const { data: clients } = await supabase
     .from("User")
-    .select("id, name, email, company, phone, createdAt")
-    .eq("role", "CLIENT")
+    .select("id, name, email, company, phone, role, createdAt")
     .order("createdAt", { ascending: false });
 
   // Count shipments per client

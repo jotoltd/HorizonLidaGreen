@@ -33,17 +33,17 @@ export default function ContactCard() {
         <div className="contact-item">
           {MailIcon}
           <h3>Email</h3>
-          <p>junyi.liang@horizonlidagreen.com</p>
+          <p>info@horizonlidagreen.com</p>
         </div>
         <div className="contact-item">
           {PhoneIcon}
           <h3>Phone</h3>
-          <p>Company details to be provided</p>
+          <p>Junru Yuan<br />07502 602964</p>
         </div>
         <div className="contact-item">
           {PinIcon}
           <h3>Address</h3>
-          <p>Company details to be provided</p>
+          <p>Legacy Building, 1 Viaduct Garden,<br />London, SW11 7EG</p>
         </div>
       </div>
     </div>

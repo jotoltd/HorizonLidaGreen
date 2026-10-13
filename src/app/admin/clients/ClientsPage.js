@@ -34,6 +34,17 @@ export default function ClientsPage({ clients: initial, stats = {}, startNew = f
     );
   }
 
+  async function changeRole(client, role) {
+    const res = await fetch(`/api/clients/${client.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { alert(data.error || "Failed to update access level"); return; }
+    setClients((current) => current.map((c) => (c.id === client.id ? { ...c, role: data.client.role } : c)));
+  }
+
   async function deleteClient(client) {
     if (!window.confirm(`Delete ${client.company || client.name}? This will also delete all of their deliveries and bookings.`)) return;
     setDeleting(true);
@@ -84,7 +95,15 @@ export default function ClientsPage({ clients: initial, stats = {}, startNew = f
                   <td>{stats[c.id]?.current || 0}</td>
                   <td>{stats[c.id]?.past || 0}</td>
                   <td>
-                    <span className="badge">Active</span>
+                    <select
+                      value={c.role || "CLIENT"}
+                      onChange={(e) => changeRole(c, e.target.value)}
+                      className="badge"
+                      style={{ border: "1px solid #d8e0d4", background: "#fff", cursor: "pointer" }}
+                    >
+                      <option value="CLIENT">Client</option>
+                      <option value="ADMIN">Administrator</option>
+                    </select>
                   </td>
                   <td>
                     <button onClick={() => setInvite({ ...c })} className="btn-pill btn-pill-outline btn-pill-sm">
@@ -161,6 +180,22 @@ function CreateClientForm({ onCreated, onCancel }) {
 }
 
 function InvitationPreview({ client, deleting, onDelete, onBack }) {
+  const [sending, setSending] = useState(false);
+  const [sendResult, setSendResult] = useState(null);
+
+  async function sendInvitation() {
+    setSending(true);
+    setSendResult(null);
+    const res = await fetch(`/api/clients/${client.id}/invite`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(client.password ? { password: client.password } : {}),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSending(false);
+    setSendResult(res.ok ? { ok: true } : { ok: false, error: data.error || "Failed to send invitation" });
+  }
+
   return (
     <div>
       <button onClick={onBack} className="back-link">← Back to clients</button>
@@ -183,10 +218,15 @@ function InvitationPreview({ client, deleting, onDelete, onBack }) {
         </div>
         <div className="form-footer">
           <p>Share these credentials with your client securely.</p>
+          {sendResult && (
+            <p style={{ color: sendResult.ok ? "#375737" : "#b44444", marginBottom: 12 }}>
+              {sendResult.ok ? `Invitation emailed to ${client.email}.` : sendResult.error}
+            </p>
+          )}
           <div style={{ display: "flex", gap: 12 }}>
             <button onClick={onDelete} disabled={deleting} className="btn-pill btn-pill-outline" style={{ color: "#b44444", borderColor: "#e0c4c4" }}>{deleting ? "Deleting…" : "Delete profile"}</button>
             <button onClick={onBack} className="btn-pill btn-pill-outline">Back</button>
-            <button onClick={() => alert("Invitation sent (demo).")} className="btn-pill btn-pill-primary">Send login invitation</button>
+            <button onClick={sendInvitation} disabled={sending} className="btn-pill btn-pill-primary">{sending ? "Sending…" : "Send login invitation"}</button>
           </div>
         </div>
       </div>

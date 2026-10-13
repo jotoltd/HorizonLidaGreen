@@ -52,9 +52,6 @@ export default async function Home() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/assets/company-logo.jpg" alt="Horizon Lida Green Ltd" />
         </div>
-        <a href="mailto:junyi.liang@horizonlidagreen.com" className="btn-pill btn-pill-ghost">
-          Contact us {ArrowRight}
-        </a>
       </header>
 
       <div className="login-layout">

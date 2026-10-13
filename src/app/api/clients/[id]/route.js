@@ -21,6 +21,18 @@ export async function PATCH(request, { params }) {
     }
   }
 
+  // Access level change
+  if (body.role !== undefined) {
+    const role = (body.role || "").toString().toUpperCase();
+    if (!["ADMIN", "CLIENT"].includes(role)) {
+      return NextResponse.json({ error: "Role must be ADMIN or CLIENT." }, { status: 400 });
+    }
+    if (id === user.id && role !== "ADMIN") {
+      return NextResponse.json({ error: "You cannot change your own access level." }, { status: 400 });
+    }
+    data.role = role;
+  }
+
   // Password reset
   if (body.password) {
     data.passwordHash = hashPassword(body.password.toString());
@@ -45,7 +57,7 @@ export async function PATCH(request, { params }) {
     .from("User")
     .update(data)
     .eq("id", id)
-    .select("id, name, email, company, phone")
+    .select("id, name, email, company, phone, role")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -58,6 +70,7 @@ export async function DELETE(request, { params }) {
   if (!user || user.role !== "ADMIN") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const id = Number(params.id);
+  if (id === user.id) return NextResponse.json({ error: "You cannot delete your own account." }, { status: 400 });
   // Delete shipments and their events first, then the user
   const { data: clientShipments } = await supabase.from("Shipment").select("id").eq("clientId", id);
   if (clientShipments && clientShipments.length > 0) {

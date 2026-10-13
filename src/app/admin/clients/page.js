@@ -11,8 +11,7 @@ export default async function AdminClientsPage({ searchParams }) {
   const [{ data: clients }, { data: shipments }] = await Promise.all([
     supabase
       .from("User")
-      .select("id, name, email, company, phone, createdAt")
-      .eq("role", "CLIENT")
+      .select("id, name, email, company, phone, role, createdAt")
       .order("createdAt", { ascending: false }),
     supabase.from("Shipment").select("clientId, status"),
   ]);
