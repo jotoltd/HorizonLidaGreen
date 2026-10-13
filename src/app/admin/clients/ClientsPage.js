@@ -177,6 +177,10 @@ export function InvitationPreview({ client, deleting, onDelete, onBack }) {
   const [profile, setProfile] = useState(client);
   const [password, setPassword] = useState(client.password || null);
   const [resetting, setResetting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const isAdmin = profile.role === "ADMIN";
 
   useEffect(() => {
     fetch(`/api/clients/${client.id}`)
@@ -213,6 +217,61 @@ export function InvitationPreview({ client, deleting, onDelete, onBack }) {
     else alert(data.error || "Failed to reset password");
   }
 
+  async function saveProfile(e) {
+    e.preventDefault();
+    setSaving(true);
+    setSaveError("");
+    const body = Object.fromEntries(new FormData(e.target));
+    const res = await fetch(`/api/clients/${client.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSaving(false);
+    if (!res.ok) { setSaveError(data.error || "Failed to save profile"); return; }
+    setProfile((p) => ({ ...p, ...data.client }));
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <div>
+        <button onClick={() => setEditing(false)} className="back-link">← Back to profile</button>
+        <div className="panel">
+          <div className="section-heading">
+            <h2>Edit profile</h2>
+          </div>
+          <form onSubmit={saveProfile}>
+            <div className="form-grid">
+              <label className="field">
+                <span>{isAdmin ? "Full name" : "Client name"}</span>
+                <input name="name" required defaultValue={profile.name} />
+              </label>
+              {!isAdmin && (
+                <>
+                  <label className="field"><span>Company name</span><input name="company" defaultValue={profile.company || ""} /></label>
+                  <label className="field"><span>Companies House number</span><input name="companyNumber" defaultValue={profile.companyNumber || ""} /></label>
+                  <label className="field wide"><span>Company address</span><input name="address" defaultValue={profile.address || ""} /></label>
+                </>
+              )}
+              <label className="field"><span>Contact email / login email</span><input name="email" type="email" required defaultValue={profile.email} /></label>
+              <label className="field"><span>Phone number</span><input name="phone" defaultValue={profile.phone || ""} /></label>
+            </div>
+            {saveError && <p className="login-error" style={{ marginTop: 16 }}>{saveError}</p>}
+            <div className="form-footer">
+              <p>Changes apply immediately — if the email changes, it becomes the new login.</p>
+              <div style={{ display: "flex", gap: 12 }}>
+                <button type="button" onClick={() => setEditing(false)} className="btn-pill btn-pill-outline">Cancel</button>
+                <button type="submit" disabled={saving} className="btn-pill btn-pill-primary">{saving ? "Saving…" : "Save changes"}</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <button onClick={onBack} className="back-link">← Back to clients</button>
@@ -223,7 +282,7 @@ export function InvitationPreview({ client, deleting, onDelete, onBack }) {
         </div>
         <div className="invitation-text">
           <p>
-            <strong>Client name:</strong> {profile.name}
+            <strong>{isAdmin ? "Name" : "Client name"}:</strong> {profile.name}
             <br />
             <strong>Company name:</strong> {profile.company || "—"}
             {(profile.companyNumber) && <><br /><strong>Companies House:</strong> {profile.companyNumber}</>}
@@ -249,6 +308,7 @@ export function InvitationPreview({ client, deleting, onDelete, onBack }) {
           )}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <button onClick={onDelete} disabled={deleting} className="btn-pill btn-pill-outline" style={{ color: "#b44444", borderColor: "#e0c4c4" }}>{deleting ? "Deleting…" : "Delete profile"}</button>
+            <button onClick={() => setEditing(true)} className="btn-pill btn-pill-outline">Edit profile</button>
             <button onClick={resetPassword} disabled={resetting} className="btn-pill btn-pill-outline">{resetting ? "Resetting…" : "Reset password"}</button>
             <button onClick={onBack} className="btn-pill btn-pill-outline">Back</button>
             <button onClick={sendInvitation} disabled={sending} className="btn-pill btn-pill-primary">{sending ? "Sending…" : "Send login invitation"}</button>
