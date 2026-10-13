@@ -151,7 +151,7 @@ function CreateClientForm({ onCreated, onCancel }) {
       <button onClick={onCancel} className="back-link">← Back to clients</button>
       <div className="panel">
         <div className="section-heading">
-          <h2>Create client profile</h2>
+          <h2>Create account</h2>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
@@ -160,7 +160,13 @@ function CreateClientForm({ onCreated, onCancel }) {
             <label className="field wide"><span>Company address</span><input name="address" placeholder="Street, town / city, postcode" /></label>
             <label className="field"><span>Contact email / login email</span><input name="email" type="email" required placeholder="name@company.com" /></label>
             <label className="field"><span>Phone number</span><input name="phone" placeholder="Enter phone number" /></label>
-            <label className="field wide">
+            <label className="field"><span>Access level</span>
+              <select name="role" defaultValue="CLIENT">
+                <option value="CLIENT">Client</option>
+                <option value="ADMIN">Administrator</option>
+              </select>
+            </label>
+            <label className="field">
               <span>Password</span>
               <input name="password" placeholder="Leave blank to auto-generate" />
             </label>

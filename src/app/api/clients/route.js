@@ -45,6 +45,11 @@ export async function POST(request) {
   const company = (body.company || "").toString().trim() || null;
   const phone = (body.phone || "").toString().trim() || null;
   const password = (body.password || "").toString().trim() || genPassword();
+  const role = (body.role || "CLIENT").toString().toUpperCase();
+
+  if (!["ADMIN", "CLIENT"].includes(role)) {
+    return NextResponse.json({ error: "Role must be ADMIN or CLIENT." }, { status: 400 });
+  }
 
   if (!name || !email) {
     return NextResponse.json({ error: "Name and email are required." }, { status: 400 });
@@ -55,8 +60,8 @@ export async function POST(request) {
 
   const { data: client, error } = await supabase
     .from("User")
-    .insert({ name, email, company, phone, role: "CLIENT", passwordHash: hashPassword(password) })
-    .select("id, name, email, company, phone")
+    .insert({ name, email, company, phone, role, passwordHash: hashPassword(password) })
+    .select("id, name, email, company, phone, role")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
