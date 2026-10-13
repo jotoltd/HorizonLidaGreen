@@ -19,6 +19,7 @@ export async function PATCH(request, { params }) {
   const current = { ...emptyDeliveryMeta(), ...(data.delivery || {}) };
 
   if (body.driverName !== undefined) current.driverName = body.driverName;
+  if (body.driverEmail !== undefined) current.driverEmail = (body.driverEmail || "").toString().trim().toLowerCase();
   if (body.vehicleReg !== undefined) current.vehicleReg = body.vehicleReg;
   if (body.noteToClient !== undefined) current.noteToClient = body.noteToClient;
 

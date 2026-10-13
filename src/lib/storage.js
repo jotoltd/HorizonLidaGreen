@@ -32,8 +32,11 @@ export function emptyShipmentData() {
 export function emptyDeliveryMeta() {
   return {
     driverName: "",
+    driverEmail: "",
     vehicleReg: "",
     noteToClient: "",
+    trackingToken: null,
+    trackingEnabled: false,
     receipt: null,
     booking: null,
   };
@@ -64,7 +67,7 @@ export async function readShipmentData(shipmentId) {
   if (error || !data) return emptyShipmentData();
   try {
     const parsed = JSON.parse(await data.text());
-    return { documents: parsed.documents || [], claim: parsed.claim || null };
+    return { documents: parsed.documents || [], claim: parsed.claim || null, delivery: parsed.delivery || null };
   } catch {
     return emptyShipmentData();
   }
@@ -82,6 +85,56 @@ export async function writeShipmentData(shipmentId, data) {
   const manifests = await listManifests(shipmentId);
   const stale = manifests.filter((m) => m.name !== name).map((m) => `${dataDir(shipmentId)}/${m.name}`);
   if (stale.length) await supabase.storage.from(BUCKET).remove(stale).catch(() => {});
+}
+
+// Live driver location pings. Each ping is a small JSON object under
+// `shipment-<id>/location/`; the newest entry is the current position.
+const locationDir = (shipmentId) => `${prefix(shipmentId)}/location`;
+const MAX_PINGS = 500;
+
+export async function writeLocationPing(shipmentId, ping) {
+  await ensureBucket();
+  const name = `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.json`;
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(`${locationDir(shipmentId)}/${name}`, JSON.stringify(ping), { contentType: "application/json" });
+  if (error) throw new Error(error.message);
+
+  // Bound storage growth: drop pings beyond the newest MAX_PINGS.
+  const { data: files } = await supabase.storage
+    .from(BUCKET)
+    .list(locationDir(shipmentId), { limit: 1000, sortBy: { column: "created_at", order: "desc" } });
+  const stale = (files || []).filter((e) => e.id).slice(MAX_PINGS).map((e) => `${locationDir(shipmentId)}/${e.name}`);
+  if (stale.length) await supabase.storage.from(BUCKET).remove(stale).catch(() => {});
+}
+
+export async function readLatestLocation(shipmentId) {
+  await ensureBucket();
+  const { data: files } = await supabase.storage
+    .from(BUCKET)
+    .list(locationDir(shipmentId), { limit: 1000, sortBy: { column: "created_at", order: "desc" } });
+  const newest = (files || []).filter((e) => e.id)[0];
+  if (!newest) return null;
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .download(`${locationDir(shipmentId)}/${newest.name}`);
+  if (error || !data) return null;
+  try {
+    return JSON.parse(await data.text());
+  } catch {
+    return null;
+  }
+}
+
+// Verify a driver tracking token against the shipment manifest.
+export async function verifyDriverToken(shipmentId, token) {
+  if (!token) return null;
+  const data = await readShipmentData(shipmentId);
+  const delivery = getDeliveryMeta(data);
+  if (delivery.trackingEnabled && delivery.trackingToken && delivery.trackingToken === token) {
+    return delivery;
+  }
+  return null;
 }
 
 export function sanitizeFilename(name) {

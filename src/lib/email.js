@@ -147,6 +147,22 @@ export async function notifyClaimStatus({ shipment, claim, client }) {
   return sendEmail({ to: client.email, subject, html: baseTemplate({ title: subject, body }), text: `Claim for ${shipment.trackingNumber} is now ${claim.status}.` });
 }
 
+export async function notifyDriverTrackingLink({ shipment, driverName, email, link }) {
+  const subject = `Live tracking link · ${shipment.trackingNumber}`;
+  const body = `<h2>Share your location for this delivery</h2>
+    <p>Hi${driverName ? ` ${driverName}` : ""},</p>
+    <p>You are assigned to delivery <strong>${shipment.trackingNumber}</strong> (${shipment.origin} → ${shipment.destination}).</p>
+    <p>Open the link below on your phone and tap <strong>Start sharing location</strong>. Your position will update in real time for the customer while you drive.</p>
+    <p><a href="${link}" class="button">Start location sharing</a></p>
+    <p class="muted">Keep the page open while driving. You can stop sharing at any time.</p>`;
+  return sendEmail({
+    to: email,
+    subject,
+    html: baseTemplate({ title: subject, body }),
+    text: `Open this link on your phone to share your location for delivery ${shipment.trackingNumber}: ${link}`,
+  });
+}
+
 export async function notifyClaimDocumentSubmitted({ shipment, documentLabel, client }) {
   const subject = `Claim document submitted · ${shipment.trackingNumber}`;
   const body = `<h2>Claim document submitted</h2>

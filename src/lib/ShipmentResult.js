@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export const statusStyles = {
   BOOKED: "badge",
@@ -110,6 +110,59 @@ const STATUS_OPTIONS = [
   ["CANCELLED", "Cancelled"],
 ];
 
+function timeAgo(iso) {
+  const secs = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
+  if (secs < 60) return `${secs}s ago`;
+  const mins = Math.round(secs / 60);
+  if (mins < 60) return `${mins} min ago`;
+  return `${Math.round(mins / 60)}h ago`;
+}
+
+export function DriverLocationCard({ trackingNumber, driverLocation }) {
+  const [loc, setLoc] = useState(driverLocation);
+
+  useEffect(() => {
+    setLoc(driverLocation);
+  }, [driverLocation]);
+
+  useEffect(() => {
+    if (!loc) return;
+    const t = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/track?tracking=${encodeURIComponent(trackingNumber)}`);
+        const data = await res.json();
+        if (res.ok && data.driverLocation) setLoc(data.driverLocation);
+      } catch {}
+    }, 15000);
+    return () => clearInterval(t);
+  }, [trackingNumber, !!loc]);
+
+  if (!loc) return null;
+
+  const d = 0.03;
+  const bbox = `${loc.lng - d},${loc.lat - d},${loc.lng + d},${loc.lat + d}`;
+
+  return (
+    <div className="panel" style={{ marginTop: 25 }}>
+      <div className="section-heading">
+        <h2>Live driver location</h2>
+        <span>Updated {timeAgo(loc.at)}</span>
+      </div>
+      <div style={{ borderRadius: 12, overflow: "hidden", border: "1px solid #e1e7de" }}>
+        <iframe
+          title="Driver location map"
+          src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${loc.lat},${loc.lng}`}
+          style={{ width: "100%", height: 280, border: 0, display: "block" }}
+        />
+      </div>
+      <p style={{ marginTop: 12, fontSize: 13, color: "#71816f" }}>
+        The driver's position updates automatically while they share their location.
+        {loc.accuracy ? ` Accuracy ±${loc.accuracy} m.` : ""}
+      </p>
+    </div>
+  );
+}
+
 export function ShipmentResult({ result, admin = false }) {
   const { shipment, events } = result;
   const [status, setStatus] = useState(shipment.status);
@@ -155,6 +208,8 @@ export function ShipmentResult({ result, admin = false }) {
           <div>Contact Horizon Lida Green for more information.</div>
         </div>
       )}
+
+      <DriverLocationCard trackingNumber={shipment.trackingNumber} driverLocation={result.driverLocation} />
 
       <div className="panel" style={{ marginTop: 25 }}>
         <div className="section-heading">

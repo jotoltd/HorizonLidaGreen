@@ -268,9 +268,12 @@ function DeliveryDetail({ shipment, onBack, onUpdate }) {
   const meta = shipment.deliveryMeta || {};
   const [status, setStatus] = useState(shipment.status);
   const [driverName, setDriverName] = useState(meta.driverName || "");
+  const [driverEmail, setDriverEmail] = useState(meta.driverEmail || "");
   const [vehicleReg, setVehicleReg] = useState(meta.vehicleReg || "");
   const [noteToClient, setNoteToClient] = useState(meta.noteToClient || "");
   const [saving, setSaving] = useState(false);
+  const [sendingLink, setSendingLink] = useState(false);
+  const [linkResult, setLinkResult] = useState(null);
   const [docsOpen, setDocsOpen] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const receipt = meta.receipt;
@@ -290,12 +293,26 @@ function DeliveryDetail({ shipment, onBack, onUpdate }) {
     const metaRes = await fetch(`/api/shipments/${shipment.id}/delivery-meta`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ driverName, vehicleReg, noteToClient }),
+      body: JSON.stringify({ driverName, driverEmail, vehicleReg, noteToClient }),
     });
     const metaData = await metaRes.json();
     if (metaRes.ok) updated = { ...updated, ...metaData.shipment };
     setSaving(false);
     onUpdate(updated);
+  }
+
+  async function sendDriverLink() {
+    setSendingLink(true);
+    setLinkResult(null);
+    const res = await fetch(`/api/shipments/${shipment.id}/driver-link`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: driverEmail, driverName }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSendingLink(false);
+    if (!res.ok) { setLinkResult({ error: data.error || "Failed to create tracking link" }); return; }
+    setLinkResult(data);
   }
 
   return (
@@ -331,6 +348,10 @@ function DeliveryDetail({ shipment, onBack, onUpdate }) {
             <span>Driver name</span>
             <input value={driverName} onChange={(e) => setDriverName(e.target.value)} placeholder="e.g. Alex" />
           </label>
+          <label className="field">
+            <span>Driver email</span>
+            <input type="email" value={driverEmail} onChange={(e) => setDriverEmail(e.target.value)} placeholder="driver@example.com" />
+          </label>
           <label className="field wide">
             <span>Transporter registration / licence plate</span>
             <input value={vehicleReg} onChange={(e) => setVehicleReg(e.target.value)} placeholder="e.g. AB12 CDE" />
@@ -349,6 +370,46 @@ function DeliveryDetail({ shipment, onBack, onUpdate }) {
             {saving ? "Saving…" : "Save & notify client"}
           </button>
         </div>
+      </div>
+
+      <div className="panel">
+        <div className="section-heading">
+          <h2>Live driver tracking</h2>
+        </div>
+        <p style={{ marginBottom: 16 }}>
+          Email the driver a secure link. When they open it on their phone and start sharing, their
+          live position appears on the customer tracking page.
+        </p>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+          <button
+            onClick={sendDriverLink}
+            disabled={sendingLink || !driverEmail}
+            className="btn-pill btn-pill-primary"
+          >
+            {sendingLink ? "Sending…" : "Email tracking link to driver"}
+          </button>
+          {!driverEmail && <small style={{ color: "#8a9781" }}>Enter a driver email above first.</small>}
+        </div>
+        {linkResult && (
+          <div style={{ marginTop: 16 }}>
+            {linkResult.error ? (
+              <p style={{ color: "#b44444" }}>{linkResult.error}</p>
+            ) : (
+              <>
+                {linkResult.emailed ? (
+                  <p style={{ color: "#375737" }}>Tracking link emailed to {linkResult.driverEmail}.</p>
+                ) : (
+                  <p style={{ color: "#b44444" }}>
+                    Email could not be sent{linkResult.emailError ? ` (${linkResult.emailError})` : ""} — share the link manually:
+                  </p>
+                )}
+                <p style={{ wordBreak: "break-all" }}>
+                  <code>{linkResult.link}</code>
+                </p>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="panel">

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getTokenFromRequest } from "@/lib/auth";
-import { readShipmentData } from "@/lib/storage";
+import { readShipmentData, readLatestLocation } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -57,5 +57,8 @@ export async function GET(request) {
     payload.documents = (data?.documents || []).length;
   }
 
-  return NextResponse.json({ shipment: payload, events: events || [] });
+  // Live driver position, when the driver is sharing their location.
+  const driverLocation = await readLatestLocation(shipment.id).catch(() => null);
+
+  return NextResponse.json({ shipment: payload, events: events || [], driverLocation });
 }
