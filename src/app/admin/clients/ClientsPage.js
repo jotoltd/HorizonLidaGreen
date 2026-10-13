@@ -64,7 +64,8 @@ export default function ClientsPage({ clients: initial, stats = {}, startNew = "
 
   const q = search.toLowerCase();
   const filtered = clients.filter(
-    (c) => !q || c.name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.company?.toLowerCase().includes(q)
+    (c) => (c.role || "CLIENT") !== "ADMIN" &&
+      (!q || c.name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.company?.toLowerCase().includes(q))
   );
 
   return (
@@ -130,7 +131,7 @@ export default function ClientsPage({ clients: initial, stats = {}, startNew = "
   );
 }
 
-function CreateClientForm({ role = "CLIENT", onCreated, onCancel }) {
+export function CreateClientForm({ role = "CLIENT", onCreated, onCancel }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const isAdmin = role === "ADMIN";
@@ -188,7 +189,7 @@ function CreateClientForm({ role = "CLIENT", onCreated, onCancel }) {
   );
 }
 
-function InvitationPreview({ client, deleting, onDelete, onBack }) {
+export function InvitationPreview({ client, deleting, onDelete, onBack }) {
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState(null);
 
@@ -210,7 +211,7 @@ function InvitationPreview({ client, deleting, onDelete, onBack }) {
       <button onClick={onBack} className="back-link">← Back to clients</button>
       <div className="panel">
         <div className="section-heading">
-          <h2>Client profile</h2>
+          <h2>Account profile</h2>
         </div>
         <div className="invitation-text">
           <p><strong>To:</strong> {client.email}<br /><strong>Company:</strong> {client.name}</p>

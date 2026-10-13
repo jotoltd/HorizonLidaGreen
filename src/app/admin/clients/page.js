@@ -30,12 +30,7 @@ export default async function AdminClientsPage({ searchParams }) {
       eyebrow="ADMINISTRATOR"
       subtitle="Company profiles and delivery activity."
       currentHref="/admin/clients"
-      actions={
-        <div style={{ display: "flex", gap: 12 }}>
-          <Link href="/admin/clients?new=admin" className="btn-pill btn-pill-outline">+ Create administrator</Link>
-          <Link href="/admin/clients?new=1" className="btn-pill btn-pill-primary">+ Create client profile</Link>
-        </div>
-      }
+      actions={<Link href="/admin/clients?new=1" className="btn-pill btn-pill-primary">+ Create client profile</Link>}
     >
       <ClientsPage
         clients={JSON.parse(JSON.stringify(clients || []))}
