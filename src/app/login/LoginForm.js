@@ -75,18 +75,6 @@ export default function LoginForm() {
         </div>
       </label>
 
-      <button className="text-button forgot" type="button">
-        Forgot password?
-      </button>
-
-      <label className="field">
-        <span>Explore the design as</span>
-        <select defaultValue="Client">
-          <option>Client</option>
-          <option>Administrator</option>
-        </select>
-      </label>
-
       {error && <p className="login-error">{error}</p>}
 
       <button type="submit" disabled={loading} className="btn-pill btn-pill-primary login-submit">
