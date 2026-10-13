@@ -35,17 +35,6 @@ export default function ClientsPage({ clients: initial, stats = {}, startNew = "
     );
   }
 
-  async function changeRole(client, role) {
-    const res = await fetch(`/api/clients/${client.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) { alert(data.error || "Failed to update access level"); return; }
-    setClients((current) => current.map((c) => (c.id === client.id ? { ...c, role: data.client.role } : c)));
-  }
-
   async function deleteClient(client) {
     if (!window.confirm(`Delete ${client.company || client.name}? This will also delete all of their deliveries and bookings.`)) return;
     setDeleting(true);
@@ -97,15 +86,7 @@ export default function ClientsPage({ clients: initial, stats = {}, startNew = "
                   <td>{stats[c.id]?.current || 0}</td>
                   <td>{stats[c.id]?.past || 0}</td>
                   <td>
-                    <select
-                      value={c.role || "CLIENT"}
-                      onChange={(e) => changeRole(c, e.target.value)}
-                      className="badge"
-                      style={{ border: "1px solid #d8e0d4", background: "#fff", cursor: "pointer" }}
-                    >
-                      <option value="CLIENT">Client</option>
-                      <option value="ADMIN">Administrator</option>
-                    </select>
+                    <span className="badge">Active</span>
                   </td>
                   <td>
                     <button onClick={() => setInvite({ ...c })} className="btn-pill btn-pill-outline btn-pill-sm">
