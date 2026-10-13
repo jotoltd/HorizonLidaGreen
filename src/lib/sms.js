@@ -1,12 +1,8 @@
-import twilio from "twilio";
 import { canNotify } from "@/lib/preferences";
 
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const from = process.env.TWILIO_PHONE_NUMBER;
-const defaultCountryCode = process.env.TWILIO_DEFAULT_COUNTRY_CODE || "";
-
-const client = accountSid && authToken ? twilio(accountSid, authToken) : null;
+const apiKey = process.env.PURESMS_API_KEY;
+const sender = process.env.PURESMS_SENDER || "HLG_Ltd";
+const defaultCountryCode = process.env.PURESMS_DEFAULT_COUNTRY_CODE || "44";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
@@ -28,17 +24,23 @@ export async function sendSms({ to, body }) {
   if (!phone) {
     return { sid: null, skipped: true, reason: "No valid phone number." };
   }
-  if (!client || !from) {
-    console.warn("Twilio not configured; SMS not sent.", { to: phone });
-    return { sid: null, skipped: true, reason: "Twilio not configured." };
+  if (!apiKey) {
+    console.warn("PURESMS_API_KEY not configured; SMS not sent.", { to: phone });
+    return { sid: null, skipped: true, reason: "PureSMS not configured." };
   }
   try {
-    const message = await client.messages.create({
-      from,
-      to: phone,
-      body,
+    const res = await fetch("https://connect-api.divergent.cloud/sms/send", {
+      method: "POST",
+      headers: {
+        "X-Api-Key": apiKey,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ sender, recipient: phone, content: body }),
     });
-    return { sid: message.sid, skipped: false };
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || data.error || `PureSMS error ${res.status}`);
+    return { sid: data.id || null, skipped: false };
   } catch (err) {
     console.error("Failed to send SMS:", err.message);
     return { sid: null, skipped: false, error: err.message };
