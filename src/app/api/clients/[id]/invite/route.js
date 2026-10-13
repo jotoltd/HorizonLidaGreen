@@ -42,5 +42,5 @@ export async function POST(request, { params }) {
     return NextResponse.json({ error: "Email delivery is not configured on the server (RESEND_API_KEY missing)." }, { status: 502 });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, password });
 }

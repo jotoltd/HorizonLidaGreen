@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { getTokenFromRequest, hashPassword } from "@/lib/auth";
 import { notifyNewClient } from "@/lib/email";
 import { sendSms } from "@/lib/sms";
+import { writeClientProfile } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,12 @@ export async function POST(request) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  const address = (body.address || "").toString().trim();
+  const companyNumber = (body.companyNumber || "").toString().trim();
+  if (address || companyNumber) {
+    await writeClientProfile(client.id, { address: address || null, companyNumber: companyNumber || null }).catch(() => {});
+  }
 
   await notifyNewClient({ client, password });
 

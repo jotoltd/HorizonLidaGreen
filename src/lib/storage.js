@@ -126,6 +126,46 @@ export async function readLatestLocation(shipmentId) {
   }
 }
 
+// Client profile extras (address, Companies House number) — the User table
+// has no columns for them, so they live in a versioned manifest per client.
+const clientDir = (userId) => `clients/client-${userId}`;
+
+export async function writeClientProfile(userId, fields) {
+  await ensureBucket();
+  const current = await readClientProfile(userId);
+  const profile = { ...current, ...fields, updatedAt: new Date().toISOString() };
+  const name = `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.json`;
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(`${clientDir(userId)}/${name}`, JSON.stringify(profile), { contentType: "application/json" });
+  if (error) throw new Error(error.message);
+
+  const { data: files } = await supabase.storage
+    .from(BUCKET)
+    .list(clientDir(userId), { limit: 100, sortBy: { column: "created_at", order: "desc" } });
+  const stale = (files || []).filter((e) => e.id && e.name !== name).map((e) => `${clientDir(userId)}/${e.name}`);
+  if (stale.length) await supabase.storage.from(BUCKET).remove(stale).catch(() => {});
+  return profile;
+}
+
+export async function readClientProfile(userId) {
+  await ensureBucket();
+  const { data: files } = await supabase.storage
+    .from(BUCKET)
+    .list(clientDir(userId), { limit: 100, sortBy: { column: "created_at", order: "desc" } });
+  const newest = (files || []).filter((e) => e.id)[0];
+  if (!newest) return null;
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .download(`${clientDir(userId)}/${newest.name}`);
+  if (error || !data) return null;
+  try {
+    return JSON.parse(await data.text());
+  } catch {
+    return null;
+  }
+}
+
 // Verify a driver tracking token against the shipment manifest.
 export async function verifyDriverToken(shipmentId, token) {
   if (!token) return null;
