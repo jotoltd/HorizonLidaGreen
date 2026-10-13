@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import SignOutButton from "@/lib/SignOutButton";
+import AccountMenu from "@/lib/AccountMenu";
 import { Logo } from "@/lib/logo";
 
 export { Logo };
@@ -107,14 +107,6 @@ const ADMIN_NAV = [
   { href: "/admin/settings", label: "Settings", icon: "settings" },
 ];
 
-function initials(nameOrEmail) {
-  const s = (nameOrEmail || "").trim();
-  if (!s) return "·";
-  const parts = s.split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  return s.slice(0, 2).toUpperCase();
-}
-
 export function Shell({ user, title, eyebrow, subtitle, children, actions, currentHref }) {
   const nav = user.role === "ADMIN" ? ADMIN_NAV : CLIENT_NAV;
   const workspaceLabel = user.role === "ADMIN" ? "Administrator workspace" : "Client workspace";
@@ -132,8 +124,7 @@ export function Shell({ user, title, eyebrow, subtitle, children, actions, curre
             {BellIcon}
             <i />
           </span>
-          <span className="avatar">{initials(user.name || user.email)}</span>
-          <SignOutButton />
+          <AccountMenu user={user} />
         </div>
       </header>
 
