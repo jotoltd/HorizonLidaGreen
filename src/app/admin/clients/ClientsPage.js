@@ -81,7 +81,7 @@ export default function ClientsPage({ clients: initial, stats = {}, startNew = "
                 <tr key={c.id}>
                   <td>
                     <strong>{c.company || c.name}</strong>
-                    <small>{c.email}</small>
+                    <small>{c.company && c.name !== c.company ? `${c.name} · ` : ""}{c.email}</small>
                   </td>
                   <td>{stats[c.id]?.current || 0}</td>
                   <td>{stats[c.id]?.past || 0}</td>
@@ -140,11 +140,12 @@ export function CreateClientForm({ role = "CLIENT", onCreated, onCancel }) {
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
             <label className="field">
-              <span>{isAdmin ? "Full name" : "Client company name"}</span>
-              <input name="name" required placeholder={isAdmin ? "Enter full name" : "Enter company name"} />
+              <span>{isAdmin ? "Full name" : "Client name"}</span>
+              <input name="name" required placeholder={isAdmin ? "Enter full name" : "Enter contact name"} />
             </label>
             {!isAdmin && (
               <>
+                <label className="field"><span>Company name</span><input name="company" required placeholder="Enter company name" /></label>
                 <label className="field"><span>Companies House number</span><input name="companyNumber" placeholder="Enter registration number" /></label>
                 <label className="field wide"><span>Company address</span><input name="address" placeholder="Street, town / city, postcode" /></label>
               </>
@@ -222,7 +223,9 @@ export function InvitationPreview({ client, deleting, onDelete, onBack }) {
         </div>
         <div className="invitation-text">
           <p>
-            <strong>Company:</strong> {profile.company || profile.name}
+            <strong>Client name:</strong> {profile.name}
+            <br />
+            <strong>Company name:</strong> {profile.company || "—"}
             {(profile.companyNumber) && <><br /><strong>Companies House:</strong> {profile.companyNumber}</>}
             <br />
             <strong>Company address:</strong> {profile.address || "—"}
