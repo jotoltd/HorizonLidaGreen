@@ -10,26 +10,27 @@ const SearchIcon = (
   </svg>
 );
 
-export default function ClientsPage({ clients: initial, stats = {}, startNew = false }) {
+export default function ClientsPage({ clients: initial, stats = {}, startNew = "" }) {
   const [clients, setClients] = useState(initial);
-  const [showForm, setShowForm] = useState(startNew);
+  const [formMode, setFormMode] = useState(startNew === "admin" ? "admin" : startNew ? "client" : "");
   const [invite, setInvite] = useState(null);
   const [search, setSearch] = useState("");
   const [deleting, setDeleting] = useState(false);
   const router = useRouter();
 
-  useEffect(() => { setShowForm(startNew); }, [startNew]);
+  useEffect(() => { setFormMode(startNew === "admin" ? "admin" : startNew ? "client" : ""); }, [startNew]);
 
-  if (showForm) {
+  if (formMode) {
     return (
       <CreateClientForm
+        role={formMode === "admin" ? "ADMIN" : "CLIENT"}
         onCreated={(c, pwd) => {
           setClients([c, ...clients]);
-          setShowForm(false);
+          setFormMode("");
           router.replace("/admin/clients");
           setInvite({ ...c, password: pwd });
         }}
-        onCancel={() => { setShowForm(false); router.replace("/admin/clients"); }}
+        onCancel={() => { setFormMode(""); router.replace("/admin/clients"); }}
       />
     );
   }
@@ -129,20 +130,21 @@ export default function ClientsPage({ clients: initial, stats = {}, startNew = f
   );
 }
 
-function CreateClientForm({ onCreated, onCancel }) {
+function CreateClientForm({ role = "CLIENT", onCreated, onCancel }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const isAdmin = role === "ADMIN";
 
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
     setError("");
     const fd = new FormData(e.target);
-    const body = Object.fromEntries(fd);
+    const body = { ...Object.fromEntries(fd), role };
     const res = await fetch("/api/clients", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const data = await res.json();
     setLoading(false);
-    if (!res.ok) { setError(data.error || "Failed to create client"); return; }
+    if (!res.ok) { setError(data.error || "Failed to create account"); return; }
     onCreated(data.client, data.password);
   }
 
@@ -151,21 +153,22 @@ function CreateClientForm({ onCreated, onCancel }) {
       <button onClick={onCancel} className="back-link">← Back to clients</button>
       <div className="panel">
         <div className="section-heading">
-          <h2>Create account</h2>
+          <h2>{isAdmin ? "Create administrator" : "Create client profile"}</h2>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
-            <label className="field"><span>Client company name</span><input name="name" required placeholder="Enter company name" /></label>
-            <label className="field"><span>Companies House number</span><input name="companyNumber" placeholder="Enter registration number" /></label>
-            <label className="field wide"><span>Company address</span><input name="address" placeholder="Street, town / city, postcode" /></label>
-            <label className="field"><span>Contact email / login email</span><input name="email" type="email" required placeholder="name@company.com" /></label>
-            <label className="field"><span>Phone number</span><input name="phone" placeholder="Enter phone number" /></label>
-            <label className="field"><span>Access level</span>
-              <select name="role" defaultValue="CLIENT">
-                <option value="CLIENT">Client</option>
-                <option value="ADMIN">Administrator</option>
-              </select>
+            <label className="field">
+              <span>{isAdmin ? "Full name" : "Client company name"}</span>
+              <input name="name" required placeholder={isAdmin ? "Enter full name" : "Enter company name"} />
             </label>
+            {!isAdmin && (
+              <>
+                <label className="field"><span>Companies House number</span><input name="companyNumber" placeholder="Enter registration number" /></label>
+                <label className="field wide"><span>Company address</span><input name="address" placeholder="Street, town / city, postcode" /></label>
+              </>
+            )}
+            <label className="field"><span>{isAdmin ? "Login email" : "Contact email / login email"}</span><input name="email" type="email" required placeholder="name@company.com" /></label>
+            <label className="field"><span>Phone number</span><input name="phone" placeholder="Enter phone number" /></label>
             <label className="field">
               <span>Password</span>
               <input name="password" placeholder="Leave blank to auto-generate" />
