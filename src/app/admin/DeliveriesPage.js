@@ -128,7 +128,7 @@ export default function DeliveriesPage({ clients: initialClients, shipments: ini
 
       <div className="panel">
         <div className="section-heading">
-          <h2>Delivery register</h2>
+          <h2>Delivery Overview</h2>
           <span>{filtered.length} journey{filtered.length !== 1 ? "s" : ""}</span>
         </div>
 
@@ -219,7 +219,10 @@ export default function DeliveriesPage({ clients: initialClients, shipments: ini
 }
 
 function DeliveryRow({ shipment, onClick, onOpenDocs, onOpenReceipt }) {
-  const receipt = shipment.deliveryMeta?.receipt;
+  const meta = shipment.deliveryMeta || {};
+  const receipt = meta.receipt;
+  const collectionDate = meta.collectionDate || meta.booking?.collectionDate || shipment.eta || shipment.createdAt;
+  const deliveryDate = meta.deliveryDate || receipt?.confirmedAt;
   return (
     <tr>
       <td>
@@ -234,10 +237,10 @@ function DeliveryRow({ shipment, onClick, onOpenDocs, onOpenReceipt }) {
         <StatusBadge status={shipment.status} />
       </td>
       <td>
-        {fmtDate(shipment.createdAt)}
+        {fmtDate(collectionDate)}
         <small>{shipment.pieces || 1} vehicle{shipment.pieces !== 1 ? "s" : ""}</small>
       </td>
-      <td>{fmtDate(receipt?.confirmedAt)}</td>
+      <td>{fmtDate(deliveryDate)}</td>
       <td>
         <button
           className="btn-pill btn-pill-outline btn-pill-sm"
@@ -264,9 +267,14 @@ function DeliveryRow({ shipment, onClick, onOpenDocs, onOpenReceipt }) {
   );
 }
 
+const toDateInput = (d) => (d ? String(d).slice(0, 10) : "");
+
 function DeliveryDetail({ shipment, onBack, onUpdate }) {
   const meta = shipment.deliveryMeta || {};
+  const booking = meta.booking || {};
   const [status, setStatus] = useState(shipment.status);
+  const [collectionDate, setCollectionDate] = useState(toDateInput(meta.collectionDate || booking.collectionDate || shipment.eta));
+  const [deliveryDate, setDeliveryDate] = useState(toDateInput(meta.deliveryDate));
   const [driverName, setDriverName] = useState(meta.driverName || "");
   const [driverEmail, setDriverEmail] = useState(meta.driverEmail || "");
   const [vehicleReg, setVehicleReg] = useState(meta.vehicleReg || "");
@@ -293,7 +301,7 @@ function DeliveryDetail({ shipment, onBack, onUpdate }) {
     const metaRes = await fetch(`/api/shipments/${shipment.id}/delivery-meta`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ driverName, driverEmail, vehicleReg, noteToClient }),
+      body: JSON.stringify({ driverName, driverEmail, vehicleReg, noteToClient, collectionDate: collectionDate || null, deliveryDate: deliveryDate || null }),
     });
     const metaData = await metaRes.json();
     if (metaRes.ok) updated = { ...updated, ...metaData.shipment };
@@ -345,6 +353,14 @@ function DeliveryDetail({ shipment, onBack, onUpdate }) {
             </select>
           </label>
           <label className="field">
+            <span>Collection date</span>
+            <input type="date" value={collectionDate} onChange={(e) => setCollectionDate(e.target.value)} />
+          </label>
+          <label className="field">
+            <span>Delivery date</span>
+            <input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
+          </label>
+          <label className="field">
             <span>Driver name</span>
             <input value={driverName} onChange={(e) => setDriverName(e.target.value)} placeholder="e.g. Alex" />
           </label>
@@ -370,6 +386,25 @@ function DeliveryDetail({ shipment, onBack, onUpdate }) {
             {saving ? "Saving…" : "Save & notify client"}
           </button>
         </div>
+      </div>
+
+      <div className="panel">
+        <div className="section-heading">
+          <h2>Booking details</h2>
+          <span>Entered by the client when the booking was made.</span>
+        </div>
+        <div className="form-grid">
+          <label className="field"><span>Booking release code</span><input readOnly value={booking.releaseCode || "To be provided"} /></label>
+          <label className="field"><span>Content description / collection notes</span><input readOnly value={booking.notes || shipment.notes || "—"} /></label>
+        </div>
+        {booking.vins?.length > 0 && (
+          <>
+            <label className="field" style={{ marginTop: 14 }}><span>Vehicle VINs</span></label>
+            <ul className="doc-list" style={{ marginTop: 8 }}>
+              {booking.vins.map((v, i) => <li key={i} className="doc-row"><span>{v}</span></li>)}
+            </ul>
+          </>
+        )}
       </div>
 
       <div className="panel">

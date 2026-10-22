@@ -8,16 +8,18 @@ import { getUserPreferences } from "@/lib/preferences";
 
 export const dynamic = "force-dynamic";
 
-function genTracking() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let out = "HLG";
-  for (let i = 0; i < 9; i++) out += chars[Math.floor(Math.random() * chars.length)];
-  return out;
+// Booking/job references share one format: HLG + 12 digits
+// (YYMMDDHHMMSS based on when the booking is made).
+function genTracking(offsetSeconds = 0) {
+  const d = new Date(Date.now() + offsetSeconds * 1000);
+  const p = (n) => String(n).padStart(2, "0");
+  const y = String(d.getFullYear()).slice(-2);
+  return `HLG${y}${p(d.getMonth() + 1)}${p(d.getDate())}${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
 }
 
 async function genUniqueTracking() {
   for (let attempt = 0; attempt < 10; attempt++) {
-    const candidate = genTracking();
+    const candidate = genTracking(attempt);
     const { data: existing } = await supabase
       .from("Shipment")
       .select("id")

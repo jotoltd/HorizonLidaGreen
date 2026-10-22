@@ -59,12 +59,14 @@ export default function BookingsPage({ bookings: initial, clients, addressesByCl
 
   if (selected) {
     const meta = bookingMeta(selected);
+    const isPending = selected.status === "BOOKED" || selected.status === "ON_HOLD";
+    const notes = meta.notes || selected.notes;
     return (
       <div>
         <button onClick={() => setSelected(null)} className="back-link">← Back to bookings</button>
         <div className="panel">
           <div className="section-heading">
-            <h2>Booking · BKG{selected.trackingNumber.replace(/^HLG/, "")}</h2>
+            <h2>Booking · {selected.trackingNumber}</h2>
             <span>{selected.client?.company || selected.client?.name}</span>
           </div>
           <div className="form-grid">
@@ -73,7 +75,11 @@ export default function BookingsPage({ bookings: initial, clients, addressesByCl
             <label className="field"><span>Collection date</span><input readOnly value={fmtDate(meta.collectionDate || selected.eta)} /></label>
             <label className="field"><span>Vehicles</span><input readOnly value={meta.vehicleCount || selected.pieces || 1} /></label>
           </div>
-          {(meta.vins?.length > 0) && (
+          <div className="form-grid" style={{ marginTop: 14 }}>
+            <label className="field"><span>Booking release code</span><input readOnly value={meta.releaseCode || "To be provided"} /></label>
+            <label className="field"><span>Content description / collection notes</span><input readOnly value={notes || "—"} /></label>
+          </div>
+          {meta.vins?.length > 0 && (
             <>
               <div className="divider" />
               <label className="field"><span>Vehicle VINs</span></label>
@@ -82,17 +88,20 @@ export default function BookingsPage({ bookings: initial, clients, addressesByCl
               </ul>
             </>
           )}
-          {meta.releaseCode && (
-            <label className="field" style={{ marginTop: 14 }}><span>Booking release code</span><input readOnly value={meta.releaseCode} /></label>
-          )}
-          <div className="form-footer">
-            <p>Confirm the booking to convert it into a delivery.</p>
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <button onClick={() => updateBooking("CANCELLED")} disabled={saving} className="btn-pill btn-pill-outline" style={{ color: "#b44444", borderColor: "#e0c4c4" }}>Decline</button>
-              <button onClick={() => updateBooking("ON_HOLD")} disabled={saving} className="btn-pill btn-pill-outline">Mark as reviewing</button>
-              <button onClick={() => updateBooking("IN_TRANSIT")} disabled={saving} className="btn-pill btn-pill-primary">{saving ? "Saving…" : "Confirm booking"}</button>
+          {isPending ? (
+            <div className="form-footer">
+              <p>Confirm the booking to convert it into a delivery.</p>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <button onClick={() => updateBooking("CANCELLED")} disabled={saving} className="btn-pill btn-pill-outline" style={{ color: "#b44444", borderColor: "#e0c4c4" }}>Decline</button>
+                <button onClick={() => updateBooking("ON_HOLD")} disabled={saving} className="btn-pill btn-pill-outline">Mark as reviewing</button>
+                <button onClick={() => updateBooking("IN_TRANSIT")} disabled={saving} className="btn-pill btn-pill-primary">{saving ? "Saving…" : "Confirm booking"}</button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="form-footer">
+              <p>{selected.status === "CANCELLED" ? "This booking was declined." : "This booking is confirmed — manage it from Deliveries."}</p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -116,7 +125,7 @@ export default function BookingsPage({ bookings: initial, clients, addressesByCl
           return (
             <div key={b.id} className="booking-card">
               <div className="booking-top">
-                <span className="reference">BKG{b.trackingNumber.replace(/^HLG/, "")}</span>
+                <span className="reference">{b.trackingNumber}</span>
                 <span className={declined ? "badge badge-declined" : "badge"}>{bookingLabel(b.status)}</span>
               </div>
               <h2>{b.origin} → {b.destination}</h2>

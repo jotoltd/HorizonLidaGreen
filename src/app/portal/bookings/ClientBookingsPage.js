@@ -58,7 +58,7 @@ export default function ClientBookingsPage({ bookings: initial, addresses = [], 
           return (
             <div key={b.id} className="booking-card">
               <div className="booking-top">
-                <span className="reference">BKG{b.trackingNumber.replace(/^HLG/, "")}</span>
+                <span className="reference">{b.trackingNumber}</span>
                 <span className={declined ? "badge badge-declined" : "badge"}>{bookingLabel(b.status)}</span>
               </div>
               <h2>{b.origin} → {b.destination}</h2>
@@ -111,7 +111,7 @@ function BookingDetail({ booking, onBack }) {
       <button onClick={onBack} className="back-link">← Back to your bookings</button>
       <div className="panel">
         <div className="section-heading">
-          <h2>View / edit booking · BKG{booking.trackingNumber.replace(/^HLG/, "")}</h2>
+          <h2>View / edit booking · {booking.trackingNumber}</h2>
         </div>
         <div className="form-grid">
           <label className="field"><span>Collection location</span><input value={form.collectionLocation} onChange={(e) => setForm({ ...form, collectionLocation: e.target.value })} /></label>

@@ -22,6 +22,8 @@ export async function PATCH(request, { params }) {
   if (body.driverEmail !== undefined) current.driverEmail = (body.driverEmail || "").toString().trim().toLowerCase();
   if (body.vehicleReg !== undefined) current.vehicleReg = body.vehicleReg;
   if (body.noteToClient !== undefined) current.noteToClient = body.noteToClient;
+  if (body.collectionDate !== undefined) current.collectionDate = body.collectionDate || null;
+  if (body.deliveryDate !== undefined) current.deliveryDate = body.deliveryDate || null;
 
   const hadReceipt = !!current.receipt;
   if (body.receipt) {

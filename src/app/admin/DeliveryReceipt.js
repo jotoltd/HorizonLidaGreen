@@ -10,6 +10,8 @@ export default function DeliveryReceipt({ shipment, admin, onClose, onUpdate }) 
   const meta = shipment.deliveryMeta || {};
   const receipt = meta.receipt || { status: "RECEIVED", description: "", files: [] };
   const [status, setStatus] = useState(receipt.status || "RECEIVED");
+  const [collectionDate, setCollectionDate] = useState(String(meta.collectionDate || meta.booking?.collectionDate || shipment.eta || "").slice(0, 10));
+  const [deliveryDate, setDeliveryDate] = useState(String(meta.deliveryDate || "").slice(0, 10));
   const [description, setDescription] = useState(receipt.description || "");
   const [files, setFiles] = useState(receipt.files || []);
   const [uploading, setUploading] = useState(false);
@@ -40,7 +42,7 @@ export default function DeliveryReceipt({ shipment, admin, onClose, onUpdate }) 
     const res = await fetch(`/api/shipments/${shipment.id}/delivery-meta`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ receipt: { status, description, files } }),
+      body: JSON.stringify({ receipt: { status, description, files }, collectionDate: collectionDate || null, deliveryDate: deliveryDate || null }),
     });
     const data = await res.json().catch(() => ({}));
     setSaving(false);
@@ -69,6 +71,16 @@ export default function DeliveryReceipt({ shipment, admin, onClose, onUpdate }) 
             <option value="RECEIVED">Received without damage</option>
             <option value="DAMAGED">Received with damage</option>
           </select>
+        </label>
+
+        <label className="field">
+          <span>Collection date</span>
+          <input type="date" value={collectionDate} onChange={(e) => setCollectionDate(e.target.value)} disabled={!admin} />
+        </label>
+
+        <label className="field">
+          <span>Delivery date</span>
+          <input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} disabled={!admin} />
         </label>
 
         <label className="field">

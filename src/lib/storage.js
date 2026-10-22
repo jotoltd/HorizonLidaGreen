@@ -35,6 +35,8 @@ export function emptyDeliveryMeta() {
     driverEmail: "",
     vehicleReg: "",
     noteToClient: "",
+    collectionDate: null,
+    deliveryDate: null,
     trackingToken: null,
     trackingEnabled: false,
     receipt: null,
