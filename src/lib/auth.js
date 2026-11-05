@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { supabase } from "@/lib/supabase";
 
 export const JWT_SECRET =
   process.env.JWT_SECRET || "hlg-platform-dev-secret-change-in-production";
@@ -41,4 +42,22 @@ export function parseCookies(cookieHeader) {
 export function getTokenFromRequest(req) {
   const cookies = parseCookies(req.headers.get?.("cookie") || req.headers.cookie || "");
   return cookies.token ? verifyToken(cookies.token) : null;
+}
+
+// Re-read the user row so role/profile changes (e.g. admin promoting a
+// client) take effect immediately instead of waiting for the JWT to expire.
+export async function resolveUser(tokenUser) {
+  if (!tokenUser?.id) return null;
+  const { data: user } = await supabase
+    .from("User")
+    .select("id, email, name, role")
+    .eq("id", tokenUser.id)
+    .maybeSingle();
+  if (!user) return null;
+  return { ...tokenUser, ...user };
+}
+
+export async function getAuthUser(req) {
+  const tokenUser = getTokenFromRequest(req);
+  return tokenUser ? resolveUser(tokenUser) : null;
 }

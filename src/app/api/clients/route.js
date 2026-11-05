@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { getTokenFromRequest, hashPassword } from "@/lib/auth";
+import { getAuthUser, hashPassword } from "@/lib/auth";
 import { notifyNewClient } from "@/lib/email";
 import { sendSms } from "@/lib/sms";
 import { writeClientProfile } from "@/lib/storage";
@@ -15,7 +15,7 @@ function genPassword(len = 8) {
 }
 
 export async function GET(request) {
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   if (!user || user.role !== "ADMIN") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data: clients } = await supabase
@@ -37,7 +37,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   if (!user || user.role !== "ADMIN") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();

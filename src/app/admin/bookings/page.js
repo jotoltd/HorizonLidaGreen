@@ -1,6 +1,6 @@
 import { requireAdmin, Shell } from "@/lib/shell";
 import { supabase } from "@/lib/supabase";
-import { readShipmentData } from "@/lib/storage";
+import { readShipmentData, getSharedAddresses } from "@/lib/storage";
 import Link from "next/link";
 import BookingsPage from "./BookingsPage";
 
@@ -20,11 +20,8 @@ export default async function AdminBookingsPage({ searchParams }) {
     .order("createdAt", { ascending: false });
 
   const clientMap = {};
-  const addressesByClient = {};
-  (clients || []).forEach((c) => { clientMap[c.id] = c; addressesByClient[c.id] = []; });
-  (shipments || []).forEach((s) => {
-    addressesByClient[s.clientId] = [...new Set([...(addressesByClient[s.clientId] || []), s.origin, s.destination].filter((address) => address && address !== "To be provided"))];
-  });
+  (clients || []).forEach((c) => { clientMap[c.id] = c; });
+  const addresses = await getSharedAddresses();
 
   // Show all bookings, including confirmed ones — admin needs the full history.
   // Unconfirmed requests float to the top, then newest first.
@@ -57,7 +54,7 @@ export default async function AdminBookingsPage({ searchParams }) {
       <BookingsPage
         bookings={JSON.parse(JSON.stringify(bookingsWithMeta))}
         clients={JSON.parse(JSON.stringify(clients || []))}
-        addressesByClient={addressesByClient}
+        addresses={addresses}
         startNew={searchParams?.new === "1"}
       />
     </Shell>

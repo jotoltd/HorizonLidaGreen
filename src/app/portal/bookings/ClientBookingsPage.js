@@ -16,7 +16,7 @@ const ArrowRight = (
 );
 
 const bookingLabel = (s) =>
-  ({ BOOKED: "Submitted", ON_HOLD: "Reviewing", IN_TRANSIT: "Confirmed", OUT_FOR_DELIVERY: "Confirmed", DELIVERED: "Confirmed" }[s] || s.replace(/_/g, " "));
+  ({ BOOKED: "Submitted", ON_HOLD: "Reviewing", IN_TRANSIT: "Confirmed", OUT_FOR_DELIVERY: "Confirmed", DELIVERED: "Confirmed", CANCELLED: "Declined" }[s] || s.replace(/_/g, " "));
 
 export default function ClientBookingsPage({ bookings: initial, addresses = [], startNew = false }) {
   const [bookings, setBookings] = useState(initial);
@@ -81,6 +81,7 @@ export default function ClientBookingsPage({ bookings: initial, addresses = [], 
 
 function BookingDetail({ booking, onBack }) {
   const [saving, setSaving] = useState(false);
+  const editable = booking.status === "BOOKED" || booking.status === "ON_HOLD";
   const [form, setForm] = useState({
     collectionLocation: booking.origin || "",
     deliveryLocation: booking.destination || "",
@@ -114,16 +115,16 @@ function BookingDetail({ booking, onBack }) {
           <h2>View / edit booking · {booking.trackingNumber}</h2>
         </div>
         <div className="form-grid">
-          <label className="field"><span>Collection location</span><input value={form.collectionLocation} onChange={(e) => setForm({ ...form, collectionLocation: e.target.value })} /></label>
-          <label className="field"><span>Delivery location</span><input value={form.deliveryLocation} onChange={(e) => setForm({ ...form, deliveryLocation: e.target.value })} /></label>
-          <label className="field"><span>Number of vehicles</span><input type="number" min="1" value={form.vehicleCount} onChange={(e) => setForm({ ...form, vehicleCount: e.target.value })} /></label>
-          <label className="field"><span>Notes</span><textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} /></label>
+          <label className="field"><span>Collection location</span><input readOnly={!editable} value={form.collectionLocation} onChange={(e) => setForm({ ...form, collectionLocation: e.target.value })} /></label>
+          <label className="field"><span>Delivery location</span><input readOnly={!editable} value={form.deliveryLocation} onChange={(e) => setForm({ ...form, deliveryLocation: e.target.value })} /></label>
+          <label className="field"><span>Number of vehicles</span><input type="number" min="1" readOnly={!editable} value={form.vehicleCount} onChange={(e) => setForm({ ...form, vehicleCount: e.target.value })} /></label>
+          <label className="field"><span>Notes</span><textarea readOnly={!editable} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} /></label>
         </div>
         <div className="form-footer">
-          <p>Changes are reviewed by Horizon Lida Green before confirmation.</p>
+          <p>{editable ? "Changes are reviewed by Horizon Lida Green before confirmation." : "This booking is confirmed — contact Horizon Lida Green to make changes."}</p>
           <div style={{ display: "flex", gap: 12 }}>
-            <button onClick={onBack} className="btn-pill btn-pill-outline">Cancel</button>
-            <button onClick={save} disabled={saving} className="btn-pill btn-pill-primary">{saving ? "Saving…" : "Save changes"}</button>
+            <button onClick={onBack} className="btn-pill btn-pill-outline">{editable ? "Cancel" : "Back"}</button>
+            {editable && <button onClick={save} disabled={saving} className="btn-pill btn-pill-primary">{saving ? "Saving…" : "Save changes"}</button>}
           </div>
         </div>
       </div>

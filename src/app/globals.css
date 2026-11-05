@@ -794,6 +794,11 @@ select:disabled {
   color: #8a5a1e;
   background: #f7efe0;
 }
+.receipt-damage {
+  color: #b44444;
+  font-size: 16px;
+  font-weight: 700;
+}
 .receipt-link {
   color: #285d40;
   text-align: left;

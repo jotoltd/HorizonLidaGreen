@@ -168,6 +168,84 @@ export async function readClientProfile(userId) {
   }
 }
 
+// Shared address book — a single global list available to every account,
+// used to populate the booking form dropdowns. Stored as a versioned
+// manifest (same pattern as client profiles) since there is no DDL access.
+const ADDRESSES_DIR = "addresses";
+
+async function listAddressManifests() {
+  const { data } = await supabase.storage
+    .from(BUCKET)
+    .list(ADDRESSES_DIR, { limit: 100, sortBy: { column: "created_at", order: "desc" } });
+  return (data || []).filter((e) => e.id);
+}
+
+export async function readAddressBook() {
+  await ensureBucket();
+  const manifests = await listAddressManifests();
+  if (manifests.length === 0) return [];
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .download(`${ADDRESSES_DIR}/${manifests[0].name}`);
+  if (error || !data) return [];
+  try {
+    return JSON.parse(await data.text()).addresses || [];
+  } catch {
+    return [];
+  }
+}
+
+async function writeAddressBook(addresses) {
+  await ensureBucket();
+  const name = `a_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.json`;
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(`${ADDRESSES_DIR}/${name}`, JSON.stringify({ addresses, updatedAt: new Date().toISOString() }), { contentType: "application/json" });
+  if (error) throw new Error(error.message);
+
+  const manifests = await listAddressManifests();
+  const stale = manifests.filter((m) => m.name !== name).map((m) => `${ADDRESSES_DIR}/${m.name}`);
+  if (stale.length) await supabase.storage.from(BUCKET).remove(stale).catch(() => {});
+}
+
+const cleanAddress = (a) => {
+  const v = (a || "").toString().trim();
+  return v && v !== "To be provided" ? v : null;
+};
+
+// The full address list: the saved book merged with every origin/destination
+// already used on a shipment, so addresses entered before the book existed
+// (and by any account) still appear in the dropdowns.
+export async function getSharedAddresses() {
+  const stored = await readAddressBook().catch(() => []);
+  const { data: rows } = await supabase.from("Shipment").select("origin, destination");
+  const seen = new Set();
+  const merged = [];
+  for (const a of [...stored, ...(rows || []).flatMap((s) => [s.origin, s.destination])]) {
+    const v = cleanAddress(a);
+    if (!v) continue;
+    const key = v.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(v);
+  }
+  merged.sort((a, b) => a.localeCompare(b));
+
+  const hasNew = merged.some((a) => !stored.some((s) => (s || "").toString().trim().toLowerCase() === a.toLowerCase()));
+  if (hasNew) await writeAddressBook(merged).catch(() => {});
+  return merged;
+}
+
+// Save new addresses to the shared book (deduped, case-insensitive).
+export async function addAddresses(values) {
+  const list = (values || []).map(cleanAddress).filter(Boolean);
+  if (list.length === 0) return;
+  const current = await getSharedAddresses().catch(() => []);
+  const seen = new Set(current.map((a) => a.toLowerCase()));
+  const fresh = list.filter((v) => !seen.has(v.toLowerCase()));
+  if (fresh.length) await writeAddressBook([...current, ...fresh]).catch(() => {});
+}
+
 // Verify a driver tracking token against the shipment manifest.
 export async function verifyDriverToken(shipmentId, token) {
   if (!token) return null;

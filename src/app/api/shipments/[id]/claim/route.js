@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getTokenFromRequest } from "@/lib/auth";
+import { getAuthUser } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { CLAIM_STATUSES, CLAIM_DOC_STATUSES, CLAIM_STATUS_LABELS } from "@/lib/docs";
 import { notifyClaimStatus } from "@/lib/email";
@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 
 // Get the insurance claim for a shipment (owner client or admin).
 export async function GET(request, { params }) {
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { shipment, error, status } = await authorizeShipment(user, Number(params.id));
@@ -31,7 +31,7 @@ export async function GET(request, { params }) {
 
 // Create an insurance claim (admin only).
 export async function POST(request, { params }) {
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   if (!user || user.role !== "ADMIN") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { shipment, error, status } = await authorizeShipment(user, Number(params.id));
@@ -61,7 +61,7 @@ export async function POST(request, { params }) {
 // Body: { claimNumber?, insurer?, status?, incidentDate?, description?,
 //         doc?: { key, status?, notes?, removeFileId? } }
 export async function PATCH(request, { params }) {
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   if (!user || user.role !== "ADMIN") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { shipment, error, status } = await authorizeShipment(user, Number(params.id));
@@ -132,7 +132,7 @@ export async function PATCH(request, { params }) {
 
 // Delete the claim and its files (admin only).
 export async function DELETE(request, { params }) {
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   if (!user || user.role !== "ADMIN") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { shipment, error, status } = await authorizeShipment(user, Number(params.id));

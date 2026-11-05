@@ -186,7 +186,11 @@ export default function ClientPortal({ shipments: initialShipments }) {
                           <button className="receipt-link" onClick={(e) => { e.stopPropagation(); setReceiptShipment(s); }}>
                             Review receipt {ArrowRight}
                           </button>
-                          <small>{receipt.status === "DAMAGED" ? "Damage reported" : "Received without damage"}</small>
+                          {receipt.status === "DAMAGED" ? (
+                            <span className="receipt-damage">Received with damage</span>
+                          ) : (
+                            <small>Received without damage</small>
+                          )}
                         </>
                       ) : (
                         <button className="receipt-link" onClick={(e) => { e.stopPropagation(); setReceiptShipment(s); }}>
@@ -248,7 +252,13 @@ function SelectedDelivery({ shipment, onClose, onOpenReceipt, onOpenDocs }) {
         <div>
           <div className="d-label">Client receipt</div>
           <div className="d-value">
-            {meta.receipt ? (meta.receipt.status === "DAMAGED" ? "Damage reported" : "Received without damage") : "Awaiting confirmation"}
+            {meta.receipt ? (
+              meta.receipt.status === "DAMAGED" ? (
+                <span className="receipt-damage">Received with damage</span>
+              ) : (
+                "Received without damage"
+              )
+            ) : "Awaiting confirmation"}
           </div>
         </div>
       </div>

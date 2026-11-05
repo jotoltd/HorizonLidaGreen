@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, resolveUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import AccountMenu from "@/lib/AccountMenu";
@@ -9,8 +9,8 @@ export { Logo };
 
 export async function getCurrentUser() {
   const token = cookies().get("token")?.value;
-  const user = token ? verifyToken(token) : null;
-  return user;
+  const payload = token ? verifyToken(token) : null;
+  return payload ? resolveUser(payload) : null;
 }
 
 export async function requireAdmin() {

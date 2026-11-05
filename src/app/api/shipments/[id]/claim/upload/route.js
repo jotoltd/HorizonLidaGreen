@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getTokenFromRequest } from "@/lib/auth";
+import { getAuthUser } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { MAX_UPLOAD_SIZE } from "@/lib/docs";
 import { notifyClaimDocumentSubmitted } from "@/lib/email";
@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 // Upload a file against a claim checklist item (owner client or admin).
 // Multipart: key (checklist item key), file.
 export async function POST(request, { params }) {
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { shipment, error, status } = await authorizeShipment(user, Number(params.id));

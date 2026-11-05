@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getTokenFromRequest } from "@/lib/auth";
+import { getAuthUser } from "@/lib/auth";
 import { getUserPreferences, setUserPreferences } from "@/lib/preferences";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ function sanitizePreferences(prefs) {
 }
 
 export async function GET(request) {
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const prefs = await getUserPreferences(user.id);
@@ -24,7 +24,7 @@ export async function GET(request) {
 }
 
 export async function PUT(request) {
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));

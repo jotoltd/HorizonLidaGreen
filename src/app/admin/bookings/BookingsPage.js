@@ -19,7 +19,7 @@ const ArrowRight = (
 const bookingLabel = (s) =>
   ({ BOOKED: "Submitted", ON_HOLD: "Reviewing", IN_TRANSIT: "Confirmed", OUT_FOR_DELIVERY: "Confirmed", DELIVERED: "Confirmed" }[s] || s.replace(/_/g, " "));
 
-export default function BookingsPage({ bookings: initial, clients, addressesByClient, startNew = false }) {
+export default function BookingsPage({ bookings: initial, clients, addresses = [], startNew = false }) {
   const [bookings, setBookings] = useState(initial);
   const [showForm, setShowForm] = useState(startNew);
   const [selected, setSelected] = useState(null);
@@ -50,7 +50,7 @@ export default function BookingsPage({ bookings: initial, clients, addressesByCl
     return (
       <NewBookingForm
         clients={clients}
-        addressesByClient={addressesByClient}
+        addresses={addresses}
         onCreated={() => { setShowForm(false); router.replace("/admin/bookings"); router.refresh(); }}
         onCancel={() => { setShowForm(false); router.replace("/admin/bookings"); }}
       />
@@ -146,7 +146,7 @@ export default function BookingsPage({ bookings: initial, clients, addressesByCl
   );
 }
 
-function NewBookingForm({ clients, addressesByClient, onCreated, onCancel }) {
+function NewBookingForm({ clients, addresses = [], onCreated, onCancel }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [vinCount, setVinCount] = useState(2);
@@ -206,7 +206,7 @@ function NewBookingForm({ clients, addressesByClient, onCreated, onCancel }) {
               </select>
             </label>
           </div>
-          <BookingFormFields vinCount={vinCount} setVinCount={setVinCount} addresses={addressesByClient[clientId] || []} />
+          <BookingFormFields vinCount={vinCount} setVinCount={setVinCount} addresses={addresses} />
 
           {error && <p className="login-error" style={{ marginTop: 16 }}>{error}</p>}
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { getTokenFromRequest } from "@/lib/auth";
+import { getAuthUser } from "@/lib/auth";
 import { authorizeShipment, readShipmentData, writeShipmentData, logEvent, emptyDeliveryMeta } from "@/lib/storage";
 import { notifyReceiptConfirmed } from "@/lib/email";
 import { smsNotifyReceiptConfirmed } from "@/lib/sms";
@@ -8,7 +8,7 @@ import { smsNotifyReceiptConfirmed } from "@/lib/sms";
 export const dynamic = "force-dynamic";
 
 export async function PATCH(request, { params }) {
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { shipment, error, status } = await authorizeShipment(user, Number(params.id));

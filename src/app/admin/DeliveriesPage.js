@@ -255,7 +255,11 @@ function DeliveryRow({ shipment, onClick, onOpenDocs, onOpenReceipt }) {
             <button className="receipt-link" onClick={(e) => { e.stopPropagation(); onOpenReceipt(); }}>
               Review / edit receipt {ArrowRight}
             </button>
-            <small>{receipt.status === "DAMAGED" ? "Damage reported" : "Received without damage"}</small>
+            {receipt.status === "DAMAGED" ? (
+              <span className="receipt-damage">Received with damage</span>
+            ) : (
+              <small>Received without damage</small>
+            )}
           </>
         ) : (
           <button className="receipt-link" onClick={(e) => { e.stopPropagation(); onOpenReceipt(); }}>
@@ -380,7 +384,14 @@ function DeliveryDetail({ shipment, onBack, onUpdate }) {
 
         <div className="form-footer">
           <p>
-            Client receipt: {receipt ? (receipt.status === "DAMAGED" ? "Damage reported" : "Received without damage") : "Awaiting confirmation"}
+            Client receipt:{" "}
+            {receipt ? (
+              receipt.status === "DAMAGED" ? (
+                <span className="receipt-damage">Received with damage</span>
+              ) : (
+                "Received without damage"
+              )
+            ) : "Awaiting confirmation"}
           </p>
           <button onClick={save} disabled={saving} className="btn-pill btn-pill-primary">
             {saving ? "Saving…" : "Save & notify client"}

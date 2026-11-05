@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, resolveUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import LoginForm from "./login/LoginForm";
@@ -39,7 +39,8 @@ const ShieldCheckIcon = (
 
 export default async function Home() {
   const token = cookies().get("token")?.value;
-  const user = token ? verifyToken(token) : null;
+  const payload = token ? verifyToken(token) : null;
+  const user = payload ? await resolveUser(payload) : null;
   if (user?.role === "ADMIN") redirect("/admin");
   if (user?.role === "CLIENT") redirect("/portal");
 

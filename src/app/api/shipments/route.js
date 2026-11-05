@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { getTokenFromRequest } from "@/lib/auth";
-import { readShipmentData, writeShipmentData } from "@/lib/storage";
+import { getAuthUser } from "@/lib/auth";
+import { readShipmentData, writeShipmentData, addAddresses } from "@/lib/storage";
 import { notifyBookingSubmitted, notifyAdminNewBooking } from "@/lib/email";
 import { smsNotifyBookingSubmitted } from "@/lib/sms";
 import { getUserPreferences } from "@/lib/preferences";
@@ -31,7 +31,7 @@ async function genUniqueTracking() {
 }
 
 export async function GET(request) {
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   if (user.role === "ADMIN") {
@@ -101,7 +101,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();
@@ -148,6 +148,14 @@ export async function POST(request) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Save any new addresses to the shared address book for future bookings.
+  await addAddresses([
+    origin,
+    destination,
+    body.booking?.collectionLocation,
+    body.booking?.deliveryLocation,
+  ]).catch(() => {});
 
   // Persist booking/delivery metadata if provided.
   if (body.booking || body.delivery) {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { getTokenFromRequest } from "@/lib/auth";
+import { getAuthUser } from "@/lib/auth";
 import { readShipmentData, readLatestLocation } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +35,7 @@ export async function GET(request) {
   // Return shipment + events, but exclude client personal details.
   // Authenticated users (admin or the owning client) also get the id and
   // document count so the workspace track views can manage the delivery.
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   const authed = user && (user.role === "ADMIN" || user.id === shipment.clientId);
 
   const payload = {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { getTokenFromRequest, hashPassword } from "@/lib/auth";
+import { getAuthUser, hashPassword } from "@/lib/auth";
 import { notifyNewClient } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ function genPassword(len = 8) {
 }
 
 export async function POST(request, { params }) {
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   if (!user || user.role !== "ADMIN") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const id = Number(params.id);

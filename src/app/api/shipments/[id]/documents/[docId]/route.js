@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getTokenFromRequest } from "@/lib/auth";
+import { getAuthUser } from "@/lib/auth";
 import {
   authorizeShipment,
   readShipmentData,
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 // Download a document or claim file via a short-lived signed URL.
 export async function GET(request, { params }) {
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { shipment, error, status } = await authorizeShipment(user, Number(params.id));
@@ -34,7 +34,7 @@ export async function GET(request, { params }) {
 
 // Delete a document (admin only). Claim files are managed via the claim route.
 export async function DELETE(request, { params }) {
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   if (!user || user.role !== "ADMIN") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { shipment, error, status } = await authorizeShipment(user, Number(params.id));

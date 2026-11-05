@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { getTokenFromRequest } from "@/lib/auth";
-import { removeShipmentFiles } from "@/lib/storage";
+import { getAuthUser } from "@/lib/auth";
+import { removeShipmentFiles, addAddresses } from "@/lib/storage";
 import { notifyStatusUpdate, notifyBookingConfirmed } from "@/lib/email";
 import { smsNotifyStatusUpdate, smsNotifyBookingConfirmed } from "@/lib/sms";
 import { getUserPreferences } from "@/lib/preferences";
@@ -9,7 +9,7 @@ import { getUserPreferences } from "@/lib/preferences";
 export const dynamic = "force-dynamic";
 
 export async function PATCH(request, { params }) {
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const id = Number(params.id);
@@ -49,6 +49,11 @@ export async function PATCH(request, { params }) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Save any new addresses to the shared address book for future bookings.
+  if (data.origin !== undefined || data.destination !== undefined) {
+    await addAddresses([data.origin, data.destination]).catch(() => {});
+  }
 
   let event = null;
   if (statusChanged) {
@@ -95,7 +100,7 @@ export async function PATCH(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   if (!user || user.role !== "ADMIN") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const id = Number(params.id);

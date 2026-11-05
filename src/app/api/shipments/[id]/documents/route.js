@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getTokenFromRequest } from "@/lib/auth";
+import { getAuthUser } from "@/lib/auth";
 import { DOC_TYPES, MAX_UPLOAD_SIZE } from "@/lib/docs";
 import {
   authorizeShipment,
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 // List documents for a shipment (owner client or admin).
 export async function GET(request, { params }) {
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { shipment, error, status } = await authorizeShipment(user, Number(params.id));
@@ -25,7 +25,7 @@ export async function GET(request, { params }) {
 
 // Upload a document (owner client or admin). Multipart: file, type, title.
 export async function POST(request, { params }) {
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { shipment, error, status } = await authorizeShipment(user, Number(params.id));

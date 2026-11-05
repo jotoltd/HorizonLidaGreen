@@ -83,6 +83,13 @@ export default function DeliveryReceipt({ shipment, admin, onClose, onUpdate }) 
           <input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} disabled={!admin} />
         </label>
 
+        {status === "DAMAGED" && (
+          <div className="notice" style={{ margin: 0, borderColor: "#e0c4c4" }}>
+            <strong className="receipt-damage">Received with damage</strong>
+            <div>This delivery will be marked as received with damage. Please describe the damage and attach photos below.</div>
+          </div>
+        )}
+
         <label className="field">
           <span>Damage description</span>
           <textarea

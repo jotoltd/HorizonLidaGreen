@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { getTokenFromRequest } from "@/lib/auth";
+import { getAuthUser } from "@/lib/auth";
 import { readShipmentData, writeShipmentData, getDeliveryMeta, genId, logEvent } from "@/lib/storage";
 import { notifyDriverTrackingLink } from "@/lib/email";
 
@@ -10,7 +10,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 // POST — generate (or reuse) the driver's live-tracking link and email it.
 export async function POST(request, { params }) {
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   if (!user || user.role !== "ADMIN") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const id = Number(params.id);

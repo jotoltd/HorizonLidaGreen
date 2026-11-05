@@ -257,10 +257,17 @@ export function InvitationPreview({ client, deleting, onDelete, onBack }) {
               )}
               <label className="field"><span>Contact email / login email</span><input name="email" type="email" required defaultValue={profile.email} /></label>
               <label className="field"><span>Phone number</span><input name="phone" defaultValue={profile.phone || ""} /></label>
+              <label className="field">
+                <span>Access level</span>
+                <select name="role" defaultValue={profile.role === "ADMIN" ? "ADMIN" : "CLIENT"}>
+                  <option value="CLIENT">Client</option>
+                  <option value="ADMIN">Administrator</option>
+                </select>
+              </label>
             </div>
             {saveError && <p className="login-error" style={{ marginTop: 16 }}>{saveError}</p>}
             <div className="form-footer">
-              <p>Changes apply immediately — if the email changes, it becomes the new login.</p>
+              <p>Changes apply immediately — if the email changes, it becomes the new login. Access level changes update permissions right away.</p>
               <div style={{ display: "flex", gap: 12 }}>
                 <button type="button" onClick={() => setEditing(false)} className="btn-pill btn-pill-outline">Cancel</button>
                 <button type="submit" disabled={saving} className="btn-pill btn-pill-primary">{saving ? "Saving…" : "Save changes"}</button>

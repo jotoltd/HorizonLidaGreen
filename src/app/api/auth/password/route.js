@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { getTokenFromRequest, verifyPassword, hashPassword } from "@/lib/auth";
+import { getAuthUser, verifyPassword, hashPassword } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function PATCH(request) {
-  const user = getTokenFromRequest(request);
+  const user = await getAuthUser(request);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();
