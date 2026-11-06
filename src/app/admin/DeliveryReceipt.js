@@ -67,7 +67,7 @@ export default function DeliveryReceipt({ shipment, admin, onClose, onUpdate }) 
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
         <label className="field">
           <span>Delivery received</span>
-          <select value={status} onChange={(e) => setStatus(e.target.value)} disabled={!admin && receipt.status === "RECEIVED"}>
+          <select value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="RECEIVED">Received without damage</option>
             <option value="DAMAGED">Received with damage</option>
           </select>
